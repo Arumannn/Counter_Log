@@ -20,7 +20,9 @@ class CounterController {
     int oldValue = _counter;
     _counter += _step;
     int no = _history.length + 1;
-    _history.add(' $no. User menambah nilai sebesar  [+$_step] Nilai awal $oldValue →  nilai akhir $_counter  pada jam| ${_getTime()}');
+    _history.add(
+      ' $no. User menambah nilai sebesar  [+$_step] Nilai awal $oldValue →  nilai akhir $_counter  pada jam| ${_getTime()}',
+    );
   }
 
   void decrement() {
@@ -28,14 +30,20 @@ class CounterController {
     int oldValue = _counter;
     _counter -= _step;
     int no = _history.length + 1;
-   _history.add(' $no. User menambah nilai sebesar  [-$_step] Nilai awal $oldValue →  nilai akhir $_counter  pada jam| ${_getTime()}');
+    _history.add(
+      ' $no. User menambah nilai sebesar  [-$_step] Nilai awal $oldValue →  nilai akhir $_counter  pada jam| ${_getTime()}',
+    );
   }
+
+  
 
   void reset() {
     int oldValue = _counter;
     _counter = 0;
     int no = _history.length + 1;
-    _history.add('$no. User melakukan [Reset] Nilai yang awalnya berniali $oldValue →  menjadi 0 | ${_getTime()}');
+    _history.add(
+      '$no. User melakukan [Reset] Nilai yang awalnya berniali $oldValue →  menjadi 0 | ${_getTime()}',
+    );
   }
 
   void clearHistory() {

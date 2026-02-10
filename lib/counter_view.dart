@@ -47,7 +47,7 @@ class _CounterViewState extends State<CounterView> {
                   decoration: const InputDecoration(
                     labelText: 'Step',
                     border: OutlineInputBorder(),
-                    hintText: 'Masukkan nilai step',
+                    hintText: 'Masukan nilai step',
                   ),
                   onChanged: (value) {
                     final step = int.tryParse(value) ?? 1;
@@ -59,6 +59,7 @@ class _CounterViewState extends State<CounterView> {
               ],
             ),
           ),
+
           const Divider(),
           // Label History dan tombol clear
           Padding(
@@ -102,16 +103,37 @@ class _CounterViewState extends State<CounterView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             FloatingActionButton(
+              backgroundColor: Colors.red,
               heroTag: 'decrement',
               onPressed: () => setState(() => _controller.decrement()),
               child: const Icon(Icons.remove),
             ),
             FloatingActionButton(
               heroTag: 'reset',
-              onPressed: () => setState(() => _controller.reset()),
-              child: const Icon(Icons.restart_alt),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder:(context) => AlertDialog(
+                    title: const Text('Konfirmasi'),
+                    content: const Text('Apakah anda yakin ingin melakukan reset?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), 
+                      child: const Text('Batal'),
+                      ),
+                      TextButton(onPressed: () {
+                        setState(() => _controller.reset());
+                        Navigator.pop(context);
+                      }, 
+                      child: Text('Ya Reset'))
+                    ]
+                  ), 
+                  );
+              },
+              child: const Icon(Icons.restart_alt)
+
             ),
             FloatingActionButton(
+              backgroundColor: Colors.green,
               heroTag: 'increment',
               onPressed: () => setState(() => _controller.increment()),
               child: const Icon(Icons.add),
