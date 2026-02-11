@@ -20,7 +20,6 @@ class _CounterViewState extends State<CounterView> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final recentHistory = _controller.history.reversed.take(5).toList();
@@ -88,9 +87,24 @@ class _CounterViewState extends State<CounterView> {
                     itemCount: recentHistory.length,
                     itemBuilder: (context, index) {
                       final item = recentHistory[index]; // ← Langsung String
+
+                      // Tentukan warna berdasarkan jenis aksi
+                      Color textColor;
+                      IconData icon;
+                      if (item.contains('[+')) {
+                        textColor = Colors.green;
+                        icon = Icons.arrow_upward;
+                      } else if (item.contains('[-')) {
+                        textColor = Colors.red;
+                        icon = Icons.arrow_downward;
+                      } else {
+                      textColor = Colors.orange;
+                        icon = Icons.restart_alt;
+                      }
+
                       return ListTile(
-                        leading: const Icon(Icons.history),
-                        title: Text(item), // ← Langsung tampilkan
+                        leading: Icon(icon, color: textColor),
+                        title: Text(item, style: TextStyle(color: textColor)),
                       );
                     },
                   ),
@@ -113,24 +127,29 @@ class _CounterViewState extends State<CounterView> {
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder:(context) => AlertDialog(
+                  builder: (context) => AlertDialog(
                     title: const Text('Konfirmasi'),
-                    content: const Text('Apakah anda yakin ingin melakukan reset?'),
+                    content: const Text(
+                      'Apakah anda yakin ingin melakukan reset?',
+                    ),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), 
-                      child: const Text('Batal'),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Batal'),
                       ),
-                      TextButton(onPressed: () {
-                        setState(() => _controller.reset());
-                        Navigator.pop(context);
-                      }, 
-                      child: Text('Ya Reset'))
-                    ]
-                  ), 
-                  );
+                      TextButton(
+                        onPressed: () {
+                          setState(() => _controller.reset());
+                          Navigator.pop(context);
+                        },
+                        child: Text('Ya Reset'),
+                      ),
+                    ],
+                  ),
+                );
               },
-              child: const Icon(Icons.restart_alt)
-
+              backgroundColor: Colors.orange,
+              child: const Icon(Icons.restart_alt),
             ),
             FloatingActionButton(
               backgroundColor: Colors.green,

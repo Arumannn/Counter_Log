@@ -26,16 +26,17 @@ class CounterController {
   }
 
   void decrement() {
-    if (_counter - _step < 0) return;
-    int oldValue = _counter;
-    _counter -= _step;
-    int no = _history.length + 1;
-    _history.add(
-      ' $no. User menambah nilai sebesar  [-$_step] Nilai awal $oldValue →  nilai akhir $_counter  pada jam| ${_getTime()}',
-    );
+    if (_counter - _step < 0) {
+      return;
+    } else {
+      int oldValue = _counter;
+      _counter -= _step;
+      int no = _history.length + 1;
+      _history.add(
+        ' $no. User menambah nilai sebesar  [-$_step] Nilai awal $oldValue →  nilai akhir $_counter  pada jam| ${_getTime()}',
+      );
+    }
   }
-
-  
 
   void reset() {
     int oldValue = _counter;
