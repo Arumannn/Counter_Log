@@ -10,9 +10,6 @@ Aplikasi Counter sederhana yang dibangun menggunakan Flutter dengan menerapkan *
 
 **Single Responsibility Principle (SRP)** adalah prinsip pertama dari SOLID yang menyatakan bahwa:
 
-> *"Sebuah class seharusnya hanya memiliki satu alasan untuk berubah."*
-> — Robert C. Martin
-
 Dengan kata lain, setiap class atau modul harus memiliki **satu tanggung jawab tunggal** dan fokus pada satu aspek fungsionalitas saja.
 
 ### Manfaat Penerapan SRP:
