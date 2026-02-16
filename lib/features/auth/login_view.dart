@@ -108,20 +108,29 @@ class _LoginViewState extends State<LoginView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo atau Icon
-                const Icon(Icons.account_circle, size: 100, color: Colors.blue),
+                const Icon(
+                  Icons.account_circle,
+                  size: 100,
+                  color: Color(0xFF8A6F4D),
+                ),
                 const SizedBox(height: 20),
 
                 // Judul
                 const Text(
                   'Login',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3D3D3D),
+                    letterSpacing: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 8),
 
                 // Subtitle
                 const Text(
                   'Masuk ke akun Anda',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: Color(0xFF8B7D6B)),
                 ),
                 const SizedBox(height: 40),
 
@@ -170,15 +179,23 @@ class _LoginViewState extends State<LoginView> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: _isLocked
-                          ? Colors.orange.shade50
-                          : Colors.red.shade50,
+                          ? const Color(0xFFF5E6D3)
+                          : const Color(0xFFF5E0DC),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _isLocked
+                            ? const Color(0xFFC2A35C)
+                            : const Color(0xFF9E5A5A),
+                        width: 0.5,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          _isLocked ? Icons.lock_clock : Icons.error,
-                          color: _isLocked ? Colors.orange : Colors.red,
+                          _isLocked ? Icons.lock_clock : Icons.error_outline,
+                          color: _isLocked
+                              ? const Color(0xFFC2A35C)
+                              : const Color(0xFF9E5A5A),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -188,8 +205,8 @@ class _LoginViewState extends State<LoginView> {
                                 : _errorMessage!,
                             style: TextStyle(
                               color: _isLocked
-                                  ? Colors.orange.shade800
-                                  : Colors.red,
+                                  ? const Color(0xFF8A6F4D)
+                                  : const Color(0xFF9E5A5A),
                             ),
                           ),
                         ),
@@ -205,15 +222,23 @@ class _LoginViewState extends State<LoginView> {
                   child: ElevatedButton(
                     onPressed: _isLocked ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isLocked ? Colors.grey : Colors.blue,
-                      foregroundColor: Colors.white,
+                      backgroundColor: _isLocked
+                          ? const Color(0xFF8B7D6B)
+                          : const Color(0xFF8A6F4D),
+                      foregroundColor: const Color(0xFFF3EBDD),
+                      elevation: 2,
+                      shadowColor: Colors.black26,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: Text(
                       _isLocked ? 'Tunggu $_lockSeconds detik' : 'Login',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ),
@@ -223,8 +248,11 @@ class _LoginViewState extends State<LoginView> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: const Color(0xFFF3EBDD),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF8B7D6B).withOpacity(0.3),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,6 +262,7 @@ class _LoginViewState extends State<LoginView> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
+                          color: Color(0xFF8A6F4D),
                         ),
                       ),
                       const SizedBox(height: 8),

@@ -27,6 +27,7 @@ class _OnboardingViewState extends State<OnboardingView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE6D8C3),
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -38,18 +39,60 @@ class _OnboardingViewState extends State<OnboardingView> {
                 const Text(
                   'Halaman Onboarding',
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3D3D3D),
+                    letterSpacing: 1.0,
                   ),
                 ),
                 const SizedBox(height: 20),
                 // Angka besar
-                Text(
-                  '$step',
-                  style: const TextStyle(
-                    fontSize: 120,
-                    fontWeight: FontWeight.bold,
+                Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3EBDD),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: const Color(0xFFC2A35C),
+                      width: 3,
+                    ),
                   ),
+                  child: Center(
+                    child: Text(
+                      '$step',
+                      style: const TextStyle(
+                        fontSize: 100,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF8A6F4D),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Step indicator
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(3, (index) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: step == index + 1 ? 24 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: step == index + 1
+                            ? const Color(0xFFC2A35C)
+                            : const Color(0xFF8B7D6B).withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    );
+                  }),
                 ),
                 const SizedBox(height: 40),
                 // Tombol Lanjut
@@ -58,12 +101,26 @@ class _OnboardingViewState extends State<OnboardingView> {
                     _nextStep();
                   },
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8A6F4D),
+                    foregroundColor: const Color(0xFFF3EBDD),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 12,
+                      horizontal: 48,
+                      vertical: 14,
+                    ),
+                    elevation: 2,
+                    shadowColor: Colors.black26,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(step >= 3 ? 'Mulai' : 'Lanjut'),
+                  child: Text(
+                    step >= 3 ? 'Mulai' : 'Lanjut',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ],
             ),

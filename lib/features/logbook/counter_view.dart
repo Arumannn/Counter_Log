@@ -216,7 +216,7 @@ class _CounterViewState extends State<CounterView> {
                         },
                         child: const Text(
                           "Ya, Keluar",
-                          style: TextStyle(color: Colors.red),
+                          style: TextStyle(color: Color(0xFF9E5A5A)),
                         ),
                       ),
                     ],
@@ -230,38 +230,88 @@ class _CounterViewState extends State<CounterView> {
       body: Column(
         children: [
           // Bagian atas: Counter dan Step (tidak scroll)
-          Padding(
+          Container(
             padding: const EdgeInsets.all(16.0),
+            margin: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3EBDD),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
             child: Column(
               children: [
-                Text("Selamat Datang, ${widget.username}!"),
-                const Text("Total Hitungan :"),
+                Text(
+                  "Selamat Datang, ${widget.username}!",
+                  style: const TextStyle(
+                    color: Color(0xFF8B7D6B),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Total Hitungan",
+                  style: TextStyle(
+                    color: Color(0xFF3D3D3D),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 Text(
                   '${_controller.value}',
-                  style: const TextStyle(fontSize: 40),
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8A6F4D),
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 // TextField untuk mengatur step
                 TextField(
                   controller: _stepController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Step',
-                    border: OutlineInputBorder(),
+                    labelStyle: const TextStyle(color: Color(0xFF8B7D6B)),
+                    filled: true,
+                    fillColor: const Color(0xFFE6D8C3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF8B7D6B)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF8B7D6B)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF8A6F4D),
+                        width: 2,
+                      ),
+                    ),
                     hintText: 'Masukan nilai step',
+                    hintStyle: const TextStyle(color: Color(0xFF8B7D6B)),
                   ),
                   onChanged: (value) {
                     final step = int.tryParse(value) ?? 1;
                     _controller.setStep(step);
                   },
                 ),
-                const SizedBox(height: 10),
-                Text('Step saat ini: ${_controller.step}'),
+                const SizedBox(height: 8),
+                Text(
+                  'Step saat ini: ${_controller.step}',
+                  style: const TextStyle(color: Color(0xFF8B7D6B)),
+                ),
               ],
             ),
           ),
 
-          const Divider(),
+          const Divider(color: Color(0xFF8B7D6B), thickness: 0.5),
           // Label History dan tombol clear
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -269,13 +319,24 @@ class _CounterViewState extends State<CounterView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'History: (${_controller.history.length} total, 5 terbaru))',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  'History: (${_controller.history.length} total, 5 terbaru)',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3D3D3D),
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: () => setState(() => _controller.clearHistory()),
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Clear'),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Color(0xFF9E5A5A),
+                  ),
+                  label: const Text(
+                    'Clear',
+                    style: TextStyle(color: Color(0xFF9E5A5A)),
+                  ),
                 ),
               ],
             ),
@@ -284,29 +345,37 @@ class _CounterViewState extends State<CounterView> {
           // Bagian bawah: History (scrollable)
           Expanded(
             child: recentHistory.isEmpty
-                ? const Center(child: Text('Belum ada history'))
+                ? const Center(
+                    child: Text(
+                      'Belum ada history',
+                      style: TextStyle(color: Color(0xFF8B7D6B)),
+                    ),
+                  )
                 : ListView.builder(
                     itemCount: recentHistory.length,
                     itemBuilder: (context, index) {
                       final item = recentHistory[index]; // ← Langsung String
 
-                      // Tentukan warna berdasarkan jenis aksi
+                      // Tentukan warna berdasarkan jenis aksi (muted vintage colors)
                       Color textColor;
                       IconData icon;
                       if (item.contains('[+')) {
-                        textColor = Colors.green;
+                        textColor = const Color(0xFF5B7B5A); // Muted green
                         icon = Icons.arrow_upward;
                       } else if (item.contains('[-')) {
-                        textColor = Colors.red;
+                        textColor = const Color(0xFF9E5A5A); // Muted red
                         icon = Icons.arrow_downward;
                       } else {
-                        textColor = Colors.orange;
+                        textColor = const Color(0xFFC2A35C); // Muted gold
                         icon = Icons.restart_alt;
                       }
 
                       return ListTile(
                         leading: Icon(icon, color: textColor),
-                        title: Text(item, style: TextStyle(color: textColor)),
+                        title: Text(
+                          item,
+                          style: TextStyle(color: textColor, fontSize: 13),
+                        ),
                       );
                     },
                   ),
@@ -319,8 +388,10 @@ class _CounterViewState extends State<CounterView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             FloatingActionButton(
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFF9E5A5A), // Muted red
+              foregroundColor: const Color(0xFFF3EBDD),
               heroTag: 'decrement',
+              elevation: 3,
               onPressed: () => setState(() => _controller.decrement()),
               child: const Icon(Icons.remove),
             ),
@@ -344,18 +415,25 @@ class _CounterViewState extends State<CounterView> {
                           setState(() => _controller.reset());
                           Navigator.pop(context);
                         },
-                        child: Text('Ya Reset'),
+                        child: const Text(
+                          'Ya Reset',
+                          style: TextStyle(color: Color(0xFF9E5A5A)),
+                        ),
                       ),
                     ],
                   ),
                 );
               },
-              backgroundColor: Colors.orange,
+              backgroundColor: const Color(0xFFC2A35C), // Muted gold
+              foregroundColor: const Color(0xFF3D3D3D),
+              elevation: 3,
               child: const Icon(Icons.restart_alt),
             ),
             FloatingActionButton(
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF5B7B5A), // Muted green
+              foregroundColor: const Color(0xFFF3EBDD),
               heroTag: 'increment',
+              elevation: 3,
               onPressed: () => setState(() => _controller.increment()),
               child: const Icon(Icons.add),
             ),

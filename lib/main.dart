@@ -14,14 +14,141 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
+  // Vintage Color Palette
+  static const Color warmBrown = Color(0xFF8A6F4D); // Primary
+  static const Color mutedGold = Color(0xFFC2A35C); // Accent
+  static const Color warmBeige = Color(0xFFE6D8C3); // Background
+  static const Color softCream = Color(0xFFF3EBDD); // Surface/Card
+  static const Color charcoalGray = Color(0xFF3D3D3D); // Text
+  static const Color taupe = Color(0xFF8B7D6B); // Secondary text
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Counter',
+      title: 'Logbook',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 0, 136, 255),
+        useMaterial3: true,
+        scaffoldBackgroundColor: warmBeige,
+        colorScheme: ColorScheme(
+          brightness: Brightness.light,
+          primary: warmBrown,
+          onPrimary: softCream,
+          secondary: mutedGold,
+          onSecondary: charcoalGray,
+          surface: softCream,
+          onSurface: charcoalGray,
+          error: const Color(0xFF9E5A5A),
+          onError: softCream,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: warmBrown,
+          foregroundColor: softCream,
+          elevation: 2,
+          shadowColor: Color(0x40000000),
+        ),
+        cardTheme: CardThemeData(
+          color: softCream,
+          elevation: 2,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: warmBrown,
+            foregroundColor: softCream,
+            elevation: 2,
+            shadowColor: Colors.black26,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: warmBrown),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: mutedGold,
+          foregroundColor: charcoalGray,
+          elevation: 3,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: softCream,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: taupe),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: taupe),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: warmBrown, width: 2),
+          ),
+          labelStyle: const TextStyle(color: taupe),
+          hintStyle: const TextStyle(color: taupe),
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: softCream,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        dividerTheme: const DividerThemeData(color: taupe, thickness: 0.5),
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.bold,
+          ),
+          displayMedium: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.bold,
+          ),
+          displaySmall: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.bold,
+          ),
+          headlineLarge: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.w600,
+          ),
+          headlineMedium: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.w600,
+          ),
+          headlineSmall: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.w500,
+          ),
+          titleMedium: TextStyle(color: charcoalGray),
+          titleSmall: TextStyle(color: charcoalGray),
+          bodyLarge: TextStyle(color: charcoalGray),
+          bodyMedium: TextStyle(color: charcoalGray),
+          bodySmall: TextStyle(color: taupe),
+          labelLarge: TextStyle(
+            color: charcoalGray,
+            fontWeight: FontWeight.w500,
+          ),
+          labelMedium: TextStyle(color: charcoalGray),
+          labelSmall: TextStyle(color: taupe),
+        ),
+        iconTheme: const IconThemeData(color: charcoalGray),
+        listTileTheme: const ListTileThemeData(
+          iconColor: warmBrown,
+          textColor: charcoalGray,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: warmBrown,
+          contentTextStyle: const TextStyle(color: softCream),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       home: const OnboardingView(),
