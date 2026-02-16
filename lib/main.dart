@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'counter_view.dart';
+import 'features/onboarding/onboarding_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,9 +29,11 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: const Color.fromARGB(255, 0, 136, 255)),
+        colorScheme: .fromSeed(
+          seedColor: const Color.fromARGB(255, 0, 136, 255),
+        ),
       ),
-      home: const CounterView(),
+      home: const OnboardingView(),
     );
   }
 }

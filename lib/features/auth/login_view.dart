@@ -1,0 +1,266 @@
+// login_view.dart
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:logbook_app_001/features/auth/login_controller.dart';
+import 'package:logbook_app_001/features/logbook/counter_view.dart';
+
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  // Inisialisasi Otak dan Controller Input
+  final LoginController _controller = LoginController();
+  bool _isPasswordVisible = false;
+  String? _errorMessage;
+
+  // Variabel untuk fitur lock setelah 3x gagal
+  int _failedAttempts = 0;
+  bool _isLocked = false;
+  int _lockSeconds = 10;
+  Timer? _lockTimer;
+
+  // Method untuk memulai timer lock
+  void _startLockTimer() {
+    _lockSeconds = 10;
+    _isLocked = true;
+
+    _lockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_lockSeconds > 0) {
+          _lockSeconds--;
+        } else {
+          // Waktu habis, unlock tombol
+          _isLocked = false;
+          _failedAttempts = 0;
+          _errorMessage = null;
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  void _handleLogin() {
+    // Cek apakah tombol sedang dikunci
+    if (_isLocked) return;
+
+    final username = _controller.usernameController.text.trim();
+    final password = _controller.passwordController.text.trim();
+
+    // Validasi input kosong
+    if (username.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Username dan password harus diisi';
+      });
+      return;
+    }
+
+    // Proses login
+    if (_controller.login(username, password)) {
+      // Login berhasil - reset counter
+      setState(() {
+        _errorMessage = null;
+        _failedAttempts = 0;
+      });
+
+      // Pindah ke HomeView
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CounterView(username: _controller.currentUser!),
+        ),
+        (route) => false,
+      );
+    } else {
+      // Login gagal - tambah counter
+      setState(() {
+        _failedAttempts++;
+
+        if (_failedAttempts >= 3) {
+          // Lock tombol selama 10 detik
+          _errorMessage =
+              'Terlalu banyak percobaan! Coba lagi dalam $_lockSeconds detik';
+          _startLockTimer();
+        } else {
+          _errorMessage = 'Username atau password salah ($_failedAttempts/3)';
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _lockTimer?.cancel(); // Cancel timer saat dispose
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo atau Icon
+                const Icon(Icons.account_circle, size: 100, color: Colors.blue),
+                const SizedBox(height: 20),
+
+                // Judul
+                const Text(
+                  'Login',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+
+                // Subtitle
+                const Text(
+                  'Masuk ke akun Anda',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 40),
+
+                // Username Field
+                TextField(
+                  controller: _controller.usernameController,
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Password Field
+                TextField(
+                  controller: _controller.passwordController,
+                  obscureText: !_isPasswordVisible,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Error Message
+                if (_errorMessage != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _isLocked
+                          ? Colors.orange.shade50
+                          : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isLocked ? Icons.lock_clock : Icons.error,
+                          color: _isLocked ? Colors.orange : Colors.red,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _isLocked
+                                ? 'Terlalu banyak percobaan! Coba lagi dalam $_lockSeconds detik'
+                                : _errorMessage!,
+                            style: TextStyle(
+                              color: _isLocked
+                                  ? Colors.orange.shade800
+                                  : Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 24),
+
+                // Tombol Login
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLocked ? null : _handleLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isLocked ? Colors.grey : Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      _isLocked ? 'Tunggu $_lockSeconds detik' : 'Login',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Daftar akun yang tersedia (untuk testing)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Akun tersedia (untuk testing):',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '• admin : admin123',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      const Text(
+                        '• user1 : password1',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      const Text(
+                        '• user2 : password2',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      const Text(
+                        '• aruman : aruman123',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
