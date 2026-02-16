@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'counter_controller.dart';
+import 'history_service.dart';
 import 'package:logbook_app_001/features/onboarding/onboarding_view.dart';
 
 class CounterView extends StatefulWidget {
@@ -15,9 +16,116 @@ class CounterView extends StatefulWidget {
 
 class _CounterViewState extends State<CounterView> {
   final CounterController _controller = CounterController();
+  final HistoryService _historyService = HistoryService();
   final TextEditingController _stepController = TextEditingController(
     text: '1',
   );
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
+  // Initialize data dari SharedPreferences
+  Future<void> _initializeData() async {
+    await _historyService.init();
+    await _controller.init(widget.username);
+
+    // Update step controller dengan nilai yang tersimpan
+    _stepController.text = _controller.step.toString();
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  // Export history ke file
+  Future<void> _exportHistory() async {
+    try {
+      final filePath = await _controller.exportToFile();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('File berhasil disimpan:\n$filePath'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(label: 'OK', onPressed: () {}),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal export: $e')));
+      }
+    }
+  }
+
+  // Tampilkan activity logs
+  void _showActivityLogs() {
+    final logs = _controller.getActivityLogs();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Activity Log'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: logs.isEmpty
+              ? const Center(child: Text('Tidak ada activity log'))
+              : ListView.builder(
+                  itemCount: logs.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        logs[logs.length - 1 - index], // Terbaru di atas
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Tampilkan user summary
+  void _showUserSummary() {
+    final summary = _controller.getUserSummary();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('User Summary'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Username: ${summary['username']}'),
+            Text('Counter: ${summary['counter']}'),
+            Text('Step: ${summary['step']}'),
+            Text('Login Terakhir: ${summary['lastLogin'] ?? '-'}'),
+            Text('Total History: ${summary['historyCount']}'),
+            Text('Total Activity Log: ${summary['activityLogCount']}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -27,6 +135,17 @@ class _CounterViewState extends State<CounterView> {
 
   @override
   Widget build(BuildContext context) {
+    // Tampilkan loading jika sedang memuat data
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Logbook : ${widget.username}"),
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final recentHistory = _controller.history.reversed.take(5).toList();
 
     return Scaffold(
@@ -34,7 +153,25 @@ class _CounterViewState extends State<CounterView> {
         title: Text("Logbook : ${widget.username}"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          // Kita siapkan tombol logout di sini untuk Fase 3 nanti
+          // Tombol Export
+          IconButton(
+            icon: const Icon(Icons.save_alt),
+            tooltip: 'Export History',
+            onPressed: _exportHistory,
+          ),
+          // Tombol Activity Log
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Activity Log',
+            onPressed: _showActivityLogs,
+          ),
+          // Tombol User Summary
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'User Summary',
+            onPressed: _showUserSummary,
+          ),
+          // Tombol Logout
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -45,7 +182,7 @@ class _CounterViewState extends State<CounterView> {
                   return AlertDialog(
                     title: const Text("Konfirmasi Logout"),
                     content: const Text(
-                      "Apakah Anda yakin? Data yang belum disimpan mungkin akan hilang.",
+                      "Apakah Anda yakin? Data Anda akan tersimpan otomatis.",
                     ),
                     actions: [
                       // Tombol Batal
@@ -56,18 +193,26 @@ class _CounterViewState extends State<CounterView> {
                       ),
                       // Tombol Ya, Logout
                       TextButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          // Log aktivitas logout
+                          await _historyService.addActivityLog(
+                            widget.username,
+                            'User logout',
+                          );
+
                           // Menutup dialog
-                          Navigator.pop(context);
+                          if (context.mounted) Navigator.pop(context);
 
                           // 2. Navigasi kembali ke Onboarding (Membersihkan Stack)
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const OnboardingView(),
-                            ),
-                            (route) => false,
-                          );
+                          if (context.mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const OnboardingView(),
+                              ),
+                              (route) => false,
+                            );
+                          }
                         },
                         child: const Text(
                           "Ya, Keluar",
