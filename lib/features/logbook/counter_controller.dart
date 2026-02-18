@@ -143,4 +143,22 @@ class CounterController {
     if (_currentUsername == null) return [];
     return _historyService.getActivityLogs(_currentUsername!);
   }
+
+  // Dapatkan greeting berdasarkan waktu
+  String getGreeting(String username) {
+    final hour = DateTime.now().hour;
+    String greeting;
+
+    if (hour >= 3 && hour < 12) {
+      greeting = 'Selamat Pagi';
+    } else if (hour >= 12 && hour < 15) {
+      greeting = 'Selamat Siang';
+    } else if (hour >= 15 && hour < 18) {
+      greeting = 'Selamat Sore';
+    } else {
+      greeting = 'Selamat Malam';
+    }
+
+    return '$greeting, $username!';
+  }
 }

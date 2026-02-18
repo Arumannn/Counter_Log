@@ -151,7 +151,7 @@ class _CounterViewState extends State<CounterView> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Logbook : ${widget.username}"),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           // Tombol Export
           IconButton(
@@ -247,7 +247,7 @@ class _CounterViewState extends State<CounterView> {
             child: Column(
               children: [
                 Text(
-                  "Selamat Datang, ${widget.username}!",
+                  _controller.getGreeting(widget.username),
                   style: const TextStyle(
                     color: Color(0xFF8B7D6B),
                     fontSize: 14,
