@@ -3,6 +3,7 @@ import 'counter_controller.dart';
 import 'history_service.dart';
 import 'package:logbook_app_001/features/onboarding/onboarding_view.dart';
 
+/*
 class CounterView extends StatefulWidget {
   // Tambahkan variabel final untuk menampung nama
   final String username;
@@ -16,7 +17,7 @@ class CounterView extends StatefulWidget {
 
 class _CounterViewState extends State<CounterView> {
   final CounterController _controller = CounterController();
-  final HistoryService _historyService = HistoryService();
+  // final HistoryService _historyService = HistoryService();
   final TextEditingController _stepController = TextEditingController(
     text: '1',
   );
@@ -30,7 +31,7 @@ class _CounterViewState extends State<CounterView> {
 
   // Initialize data dari SharedPreferences
   Future<void> _initializeData() async {
-    await _historyService.init();
+    // await _historyService.init();
     await _controller.init(widget.username);
 
     // Update step controller dengan nilai yang tersimpan
@@ -195,10 +196,10 @@ class _CounterViewState extends State<CounterView> {
                       TextButton(
                         onPressed: () async {
                           // Log aktivitas logout
-                          await _historyService.addActivityLog(
-                            widget.username,
-                            'User logout',
-                          );
+                          // await _historyService.addActivityLog(
+                          //   widget.username,
+                          //   'User logout',
+                          // );
 
                           // Menutup dialog
                           if (context.mounted) Navigator.pop(context);
@@ -444,3 +445,5 @@ class _CounterViewState extends State<CounterView> {
     );
   }
 }
+
+*/
