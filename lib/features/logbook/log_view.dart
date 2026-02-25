@@ -9,7 +9,6 @@ class LogView extends StatefulWidget {
 
   const LogView({super.key, required this.username});
 
-
   @override
   State<LogView> createState() => _LogViewState();
 }
@@ -19,6 +18,7 @@ class _LogViewState extends State<LogView> {
   final LogController _controller = LogController();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+  LogCategory _selectedCategory = LogCategory.other;
 
   // @override
   // void initState() {
@@ -31,18 +31,40 @@ class _LogViewState extends State<LogView> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Tambah Catatan Baru"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min, // Agar dialog tidak memenuhi layar
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(hintText: "Judul Catatan"),
-            ),
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(hintText: "Isi Deskripsi"),
-            ),
-          ],
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min, // Agar dialog tidak memenuhi layar
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(hintText: "Judul Catatan"),
+              ),
+              TextField(
+                controller: _contentController,
+                decoration: const InputDecoration(hintText: "Isi Deskripsi"),
+              ),
+              DropdownButton<LogCategory>(
+                value: _selectedCategory,
+                onChanged: (LogCategory? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue!;
+                  });
+                },
+                items: LogCategory.values.map((LogCategory category) {
+                  return DropdownMenuItem<LogCategory>(
+                    value: category,
+                    child: Row(
+                      children: [
+                        Icon(categoryIcons[category]),
+                        SizedBox(width: 8),
+                        Text(categoryLabels[category]!),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -51,10 +73,12 @@ class _LogViewState extends State<LogView> {
           ),
           ElevatedButton(
             onPressed: () {
+              
               // Jalankan fungsi tambah di Controller
               _controller.addLog(
                 _titleController.text,
                 _contentController.text,
+                _selectedCategory,
               );
 
               // Trigger UI Refresh
@@ -75,16 +99,39 @@ class _LogViewState extends State<LogView> {
   void _showEditLogDialog(int index, LogModel log) {
     _titleController.text = log.title;
     _contentController.text = log.description;
+    _selectedCategory = log.category;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Edit Catatan"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: _titleController),
-            TextField(controller: _contentController),
-          ],
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: _titleController),
+              TextField(controller: _contentController),
+              DropdownButton<LogCategory>(
+                value: _selectedCategory,
+                onChanged: (LogCategory? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue!;
+                  });
+                },
+                items: LogCategory.values.map((LogCategory category) {
+                  return DropdownMenuItem<LogCategory>(
+                    value: category,
+                    child: Row(
+                      children: [
+                        Icon(categoryIcons[category]),
+                        SizedBox(width: 8),
+                        Text(categoryLabels[category]!),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -97,6 +144,7 @@ class _LogViewState extends State<LogView> {
                 index,
                 _titleController.text,
                 _contentController.text,
+                _selectedCategory, // Make sure updateLog expects LogCategory here
               );
               _titleController.clear();
               _contentController.clear();
@@ -120,11 +168,11 @@ class _LogViewState extends State<LogView> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           // Tombol Export
-          IconButton(
-            icon: const Icon(Icons.save_alt),
-            tooltip: 'Export History',
-            onPressed: _controller.loadFromDisk,
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.save_alt),
+          //   tooltip: 'Export History',
+          //   onPressed: _controller.loadFromDisk,
+          // ),
           // // Tombol Activity Log
           // IconButton(
           //   icon: const Icon(Icons.history),
@@ -259,7 +307,7 @@ class _LogViewState extends State<LogView> {
                             },
                             child: Card(
                               child: ListTile(
-                                leading: const Icon(Icons.note),
+                                leading: Icon(categoryIcons[log.category]),
                                 title: Text(log.title),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,

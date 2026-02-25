@@ -22,23 +22,26 @@ class LogController {
     }
   }
 
-  void addLog(String title, String desc) {
+  void addLog(String title, String desc, LogCategory category) {
     final newLog = LogModel(
       title: title,
       description: desc,
       date: DateTime.now().toString(),
+      category: category
     );
     logsNotifier.value = [...logsNotifier.value, newLog];
     filteredLogs.value = List.from(logsNotifier.value);
+    
     saveToDisk();
   }
 
-  void updateLog(int index, String title, String desc) {
+  void updateLog(int index, String title, String desc, LogCategory category) {
     final currentLogs = List<LogModel>.from(logsNotifier.value);
     currentLogs[index] = LogModel(
       title: title,
       description: desc,
       date: DateTime.now().toString(),
+      category: category
     );
     logsNotifier.value = currentLogs;
     filteredLogs.value = List.from(logsNotifier.value);

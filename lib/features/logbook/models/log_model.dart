@@ -1,8 +1,24 @@
+import 'package:flutter/material.dart';
+enum LogCategory { academic, saving, personal, other }
+
+final Map<LogCategory, IconData> categoryIcons = {
+  LogCategory.academic: Icons.school,
+  LogCategory.saving: Icons.savings,
+  LogCategory.personal: Icons.person,
+  LogCategory.other: Icons.category,
+};
+
+final Map<LogCategory, String> categoryLabels = {
+  LogCategory.academic: "Academic",
+  LogCategory.saving: "Saving",
+  LogCategory.personal: "Personal",
+  LogCategory.other: "Other",
+};
 class LogModel {
   final String title;
   final String date;
   final String description;
-  final String category;
+  final LogCategory category;
 
   LogModel({
     required this.title,
