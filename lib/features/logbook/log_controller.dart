@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/log_model.dart';
+import 'package:logbook_app_001/services/mongo_service.dart';
 
 class LogController {
   final ValueNotifier<List<LogModel>> logsNotifier = ValueNotifier([]);
@@ -31,7 +32,26 @@ class LogController {
     );
     logsNotifier.value = [...logsNotifier.value, newLog];
     filteredLogs.value = List.from(logsNotifier.value);
-    
+
+  //   try {
+  //     // 2. Kirim ke MongoDB Atlas
+  //     await MongoService().insertLog(newLog);
+
+  //     // 3. Update UI Lokal (Data sekarang sudah punya ID asli)
+  //     final currentLogs = List<LogModel>.from(logsNotifier.value);
+  //     currentLogs.add(newLog);
+  //     logsNotifier.value = currentLogs;
+
+  //     await LogHelper.writeLog(
+  //       "SUCCESS: Tambah data dengan ID lokal",
+  //       source: "log_controller.dart",
+  //     );
+  //   } catch (e) {
+  //     await LogHelper.writeLog("ERROR: Gagal sinkronisasi Add - $e", level: 1);
+  //   }
+  // }
+  
+
     saveToDisk();
   }
 

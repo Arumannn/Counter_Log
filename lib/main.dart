@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'features/onboarding/onboarding_view.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize HistoryService (SharedPreferences)
   // await HistoryService().init();
-
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
