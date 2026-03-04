@@ -24,16 +24,18 @@ class LogView extends StatefulWidget {
 
 class _LogViewState extends State<LogView> {
   // 1. Tambahkan Controller untuk menangkap input di dalam State
-  late LogController _controller = LogController();
+  late LogController _controller;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   LogCategory _selectedCategory = LogCategory.other;
   bool _isLoading = true;
+  bool _isOffline = false; // Flag untuk mode offline
 
   @override
   void initState() {
     super.initState();
-    _controller = LogController();
+    // Buat controller dengan username agar SharedPreferences per akun
+    _controller = LogController(username: widget.username);
 
     // Memberikan kesempatan UI merender widget awal sebelum proses berat dimulai
     Future.microtask(() => _initDatabase());
@@ -74,25 +76,60 @@ class _LogViewState extends State<LogView> {
 
       await _controller.loadFromDisk();
 
+      // Koneksi berhasil, matikan mode offline
+      if (mounted) setState(() => _isOffline = false);
+
       await LogHelper.writeLog(
         "UI: Data berhasil dimuat ke Notifier.",
         source: "log_view.dart",
       );
     } catch (e) {
+      // Koneksi gagal, aktifkan mode offline
+      if (mounted) setState(() => _isOffline = true);
+
       await LogHelper.writeLog(
         "UI: Error - $e",
         source: "log_view.dart",
         level: 1,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Masalah: $e"), backgroundColor: Colors.red),
-        );
-      }
     } finally {
-      // 2. INILAH FINALLY: Apapun yang terjadi (Sukses/Gagal/Data Kosong), loading harus mati
+      // Apapun yang terjadi (Sukses/Gagal/Data Kosong), loading harus mati
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Pull-to-refresh: sinkronisasi ulang dari cloud
+  Future<void> _onRefresh() async {
+    try {
+      await MongoService().connect().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception("Timeout saat refresh"),
+      );
+      await _controller.loadFromDisk();
+      if (mounted) setState(() => _isOffline = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Data berhasil diperbarui dari Cloud"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isOffline = true);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Gagal refresh: Masih offline"),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
     }
   }
@@ -143,16 +180,13 @@ class _LogViewState extends State<LogView> {
             child: const Text("Batal"),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Jalankan fungsi tambah di Controller
-              _controller.addLog(
+            onPressed: () async {
+              // Jalankan fungsi tambah di Controller (async ke Cloud)
+              await _controller.addLog(
                 _titleController.text,
                 _contentController.text,
                 _selectedCategory,
               );
-
-              // Trigger UI Refresh
-              setState(() {});
 
               // Bersihkan input dan tutup dialog
               _titleController.clear();
@@ -209,12 +243,12 @@ class _LogViewState extends State<LogView> {
             child: const Text("Batal"),
           ),
           ElevatedButton(
-            onPressed: () {
-              _controller.updateLog(
+            onPressed: () async {
+              await _controller.updateLog(
                 index,
                 _titleController.text,
                 _contentController.text,
-                _selectedCategory, // Make sure updateLog expects LogCategory here
+                _selectedCategory,
               );
               _titleController.clear();
               _contentController.clear();
@@ -315,21 +349,47 @@ class _LogViewState extends State<LogView> {
         valueListenable: _controller.filteredLogs,
         builder: (context, currentLogs, child) {
           if (_isLoading) {
-              return const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text("Menghubungkan ke MongoDB Atlas..."),
-                  ],
-                ),
-              );
-            }
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Menghubungkan ke MongoDB Atlas..."),
+                ],
+              ),
+            );
+          }
           return Column(
             children: [
+              // --- OFFLINE MODE WARNING BANNER ---
+              if (_isOffline)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  color: Colors.orange.shade700,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.wifi_off, color: Colors.white, size: 20),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          "Offline Mode — Menampilkan data cache lokal. Tarik ke bawah untuk coba koneksi ulang.",
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        onPressed: _onRefresh,
+                        tooltip: "Coba koneksi ulang",
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
               Padding(
-                padding: const EdgeInsetsGeometry.all(8.0),
+                padding: const EdgeInsets.all(8.0),
                 child: TextField(
                   onChanged: (value) => _controller.searchLog(value),
                   decoration: const InputDecoration(
@@ -339,28 +399,36 @@ class _LogViewState extends State<LogView> {
                 ),
               ),
               Expanded(
-                child: currentLogs.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: const Color(0xFF9E5A5A),
+                  child: currentLogs.isEmpty
+                      ? ListView(
+                          // ListView agar RefreshIndicator tetap bisa di-pull saat kosong
                           children: [
-                            Icon(
-                              Icons.no_sim_outlined,
-                              size: 80,
-                              color: Colors.brown,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              "Belum ada catatan",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.brown,
+                            SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                            Center(
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.no_sim_outlined,
+                                    size: 80,
+                                    color: Colors.brown,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    "Belum ada catatan",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.brown,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      )
-                    : ListView.builder(
+                        )
+                      : ListView.builder(
                         itemCount: currentLogs.length,
                         itemBuilder: (context, index) {
                           final log = currentLogs[index];
@@ -379,8 +447,8 @@ class _LogViewState extends State<LogView> {
                                 color: Colors.white,
                               ),
                             ),
-                            onDismissed: (direction) {
-                              _controller.removeLog(index);
+                            onDismissed: (direction) async {
+                              await _controller.removeLog(index);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text("Catatan dihapus"),
@@ -398,7 +466,7 @@ class _LogViewState extends State<LogView> {
                                     Text(log.description),
                                     const SizedBox(height: 4),
                                     Text(
-                                      log.date.substring(0, 16),
+                                      LogHelper.formatRelative(log.date),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
@@ -424,10 +492,9 @@ class _LogViewState extends State<LogView> {
                                         Icons.delete,
                                         color: Colors.red,
                                       ),
-                                      onPressed: () {
-                                        setState(
-                                          () => _controller.removeLog(index),
-                                        );
+                                      onPressed: () async {
+                                        await _controller.removeLog(index);
+                                        setState(() {});
                                       },
                                     ),
                                   ],
@@ -438,6 +505,7 @@ class _LogViewState extends State<LogView> {
                         },
                       ),
               ),
+            ),
             ],
           );
         },

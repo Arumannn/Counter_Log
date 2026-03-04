@@ -57,4 +57,47 @@ class LogHelper {
         return '\x1B[0m';
     }
   }
+
+  // === TIMESTAMP FORMATTING (Bahasa Indonesia) ===
+
+  /// Format waktu relatif: "Baru saja", "2 Menit yang lalu", "25 Januari 2026"
+  static String formatRelative(String dateString) {
+    try {
+      final DateTime date = DateTime.parse(dateString);
+      final DateTime now = DateTime.now();
+      final Duration diff = now.difference(date);
+
+      if (diff.inMinutes < 1) return 'Baru saja';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} Menit yang lalu';
+      if (diff.inHours < 24) return '${diff.inHours} Jam yang lalu';
+      if (diff.inDays == 1) return 'Kemarin, ${DateFormat('HH:mm').format(date)}';
+      if (diff.inDays < 7) return '${diff.inDays} Hari yang lalu';
+
+      return _formatFullDate(date);
+    } catch (e) {
+      return dateString.length >= 16 ? dateString.substring(0, 16) : dateString;
+    }
+  }
+
+  /// Format tanggal lengkap: "25 Januari 2026"
+  static String _formatFullDate(DateTime date) {
+    const List<String> bulanIndonesia = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    final String bulan = bulanIndonesia[date.month - 1];
+    return '${date.day} $bulan ${date.year}';
+  }
+
+  /// Format tanggal + waktu: "25 Januari 2026, 14:30"
+  static String formatFull(String dateString) {
+    try {
+      final DateTime date = DateTime.parse(dateString);
+      final String tanggal = _formatFullDate(date);
+      final String waktu = DateFormat('HH:mm').format(date);
+      return '$tanggal, $waktu';
+    } catch (e) {
+      return dateString.length >= 16 ? dateString.substring(0, 16) : dateString;
+    }
+  }
 }

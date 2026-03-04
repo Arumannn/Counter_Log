@@ -57,33 +57,50 @@ class LogModel {
   final String date;
   final String description;
   final LogCategory category;
+  final String owner; // Pemilik catatan (username)
 
   LogModel({
     this.id,
     required this.title,
     required this.date,
     required this.description,
-    required this.category,
+    this.category = LogCategory.other,
+    this.owner = '',
   });
 
-  // Untuk Tugas HOTS: Konversi Map (JSON) ke Object
+  // Helper: konversi String dari MongoDB ke LogCategory enum
+  static LogCategory _parseCategory(dynamic value) {
+    if (value is LogCategory) return value;
+    if (value is String) {
+      return LogCategory.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => LogCategory.other,
+      );
+    }
+    return LogCategory.other;
+  }
+
+  // Untuk Tugas HOTS: Konversi Map (JSON/BSON) ke Object
   factory LogModel.fromMap(Map<String, dynamic> map) {
     return LogModel(
-      id : map['id'],
-      title: map['title'],
-      date: map['date'],
-      description: map['description'],
-      category: map['category'],
+      id: map['_id'] as ObjectId?,
+      title: map['title'] ?? '',
+      date: map['date'] ?? '',
+      description: map['description'] ?? '',
+      category: _parseCategory(map['category']),
+      owner: map['owner'] ?? '',
     );
   }
 
   // Konversi Object ke Map (JSON) untuk disimpan
   Map<String, dynamic> toMap() {
     return {
+      '_id': id,
       'title': title,
       'date': date,
       'description': description,
-      'category': category,
+      'category': category.name,
+      'owner': owner,
     };
   }
 }

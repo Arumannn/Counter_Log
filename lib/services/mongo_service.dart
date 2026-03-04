@@ -63,18 +63,22 @@ class MongoService {
     }
   }
 
-  /// READ: Mengambil data dari Cloud
-  Future<List<LogModel>> getLogs() async {
+  /// READ: Mengambil data dari Cloud (difilter per akun/owner)
+  Future<List<LogModel>> getLogs({String? owner}) async {
     try {
       final collection = await _getSafeCollection(); // Gunakan jalur aman
 
       await LogHelper.writeLog(
-        "INFO: Fetching data from Cloud...",
+        "INFO: Fetching data from Cloud${owner != null ? ' for owner: $owner' : ''}...",
         source: _source,
         level: 3,
       );
 
-      final List<Map<String, dynamic>> data = await collection.find().toList();
+      // Jika owner diberikan, filter hanya dokumen milik user tersebut
+      final query = owner != null ? where.eq('owner', owner) : null;
+      final List<Map<String, dynamic>> data = query != null
+          ? await collection.find(query).toList()
+          : await collection.find().toList();
       return data.map((json) => LogModel.fromMap(json)).toList();
     } catch (e) {
       await LogHelper.writeLog(
