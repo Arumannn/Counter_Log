@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../helpers/log_helper.dart';
 import 'models/log_model.dart';
 import 'package:logbook_app_001/services/mongo_service.dart';
+import 'package:logbook_app_001/services/access_policy.dart';
 
 final Map<LogCategory, Color> categoryColors = {
   LogCategory.academic: Colors.blue.shade100,
@@ -15,8 +16,9 @@ final Map<LogCategory, Color> categoryColors = {
 
 class LogView extends StatefulWidget {
   final String username;
+  final String teamId;
 
-  const LogView({super.key, required this.username});
+  const LogView({super.key, required this.username, required this.teamId});
 
   @override
   State<LogView> createState() => _LogViewState();
@@ -34,8 +36,11 @@ class _LogViewState extends State<LogView> {
   @override
   void initState() {
     super.initState();
-    // Buat controller dengan username agar SharedPreferences per akun
-    _controller = LogController(username: widget.username);
+    // Buat controller dengan username dan teamId
+    _controller = LogController(
+      username: widget.username,
+      teamId: widget.teamId,
+    );
 
     // Memberikan kesempatan UI merender widget awal sebelum proses berat dimulai
     Future.microtask(() => _initDatabase());
@@ -366,7 +371,10 @@ class _LogViewState extends State<LogView> {
               if (_isOffline)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 16,
+                  ),
                   color: Colors.orange.shade700,
                   child: Row(
                     children: [
@@ -406,7 +414,9 @@ class _LogViewState extends State<LogView> {
                       ? ListView(
                           // ListView agar RefreshIndicator tetap bisa di-pull saat kosong
                           children: [
-                            SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.25,
+                            ),
                             Center(
                               child: Column(
                                 children: [
@@ -429,83 +439,114 @@ class _LogViewState extends State<LogView> {
                           ],
                         )
                       : ListView.builder(
-                        itemCount: currentLogs.length,
-                        itemBuilder: (context, index) {
-                          final log = currentLogs[index];
-                          return Dismissible(
-                            key: Key(
-                              log.date,
-                            ), // Gunakan identitas unik (timestamp)
-                            direction: DismissDirection
-                                .endToStart, // Swipe dari kanan ke kiri
-                            background: Container(
-                              color: Colors.red,
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.white,
-                              ),
-                            ),
-                            onDismissed: (direction) async {
-                              await _controller.removeLog(index);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Catatan dihapus"),
-                                ),
-                              );
-                            },
-                            child: Card(
-                              color: categoryColors[log.category],
-                              child: ListTile(
-                                leading: Icon(categoryIcons[log.category]),
-                                title: Text(log.title),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(log.description),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      LogHelper.formatRelative(log.date),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Wrap(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.edit,
-                                        color: Colors.blue,
-                                      ),
-                                      onPressed: () => _showEditLogDialog(
-                                        index,
-                                        log,
-                                      ), // Fungsi edit
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
-                                      ),
-                                      onPressed: () async {
-                                        await _controller.removeLog(index);
-                                        setState(() {});
-                                      },
-                                    ),
-                                  ],
+                          itemCount: currentLogs.length,
+                          itemBuilder: (context, index) {
+                            final log = currentLogs[index];
+                            return Dismissible(
+                              key: Key(
+                                log.date,
+                              ), // Gunakan identitas unik (timestamp)
+                              direction: DismissDirection
+                                  .endToStart, // Swipe dari kanan ke kiri
+                              background: Container(
+                                color: Colors.red,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                              onDismissed: (direction) async {
+                                await _controller.removeLog(
+                                  index,
+                                  userRole: _controller.currentUser['role'],
+                                  userId: _controller.currentUser['id'],
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Catatan dihapus"),
+                                  ),
+                                );
+                              },
+                              child: Card(
+                                color: categoryColors[log.category],
+                                child: ListTile(
+                                  leading: Icon(categoryIcons[log.category]),
+                                  title: Text(log.title),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(log.description),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        LogHelper.formatRelative(log.date),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Wrap(
+                                    children: [
+                                      if (AccessControlService.canPerform(
+                                        widget.username,
+                                        'delete',
+                                        isOwner:
+                                            log.authorId == widget.username,
+                                      ))
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                          ),
+                                          onPressed: () =>
+                                              _controller.removeLog(
+                                                index,
+                                                userRole: _controller
+                                                    .currentUser['role'],
+                                                userId: _controller
+                                                    .currentUser['id'],
+                                              ),
+                                        ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () => _showEditLogDialog(
+                                          index,
+                                          log,
+                                        ), // Fungsi edit
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () async {
+                                          await _controller.removeLog(
+                                            index,
+                                            userRole:
+                                                _controller.currentUser['role'],
+                                            userId:
+                                                _controller.currentUser['id'],
+                                          );
+                                          setState(() {});
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
               ),
-            ),
             ],
           );
         },

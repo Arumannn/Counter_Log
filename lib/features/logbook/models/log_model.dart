@@ -1,39 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mongo_dart/mongo_dart.dart';
+import 'package:hive/hive.dart';
+import 'package:mongo_dart/mongo_dart.dart' show ObjectId;
 
-class Logbook {
-  final ObjectId? id; // Penanda unik global dari MongoDB
-  final String title;
-  final String description;
-  final DateTime date;
+part 'log_model.g.dart';
 
-  Logbook({
-    this.id,
-    required this.title,
-    required this.description,
-    required this.date,
-  });
-
-  // [CONVERT] Memasukkan data ke "Kardus" (BSON/Map) untuk dikirim ke Cloud
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id ?? ObjectId(), // Buat ID otomatis jika belum ada
-      'title': title,
-      'description': description,
-      'date': date.toIso8601String(), // Simpan tanggal dalam format standar
-    };
-  }
-
-  // [REVERT] Membongkar "Kardus" (BSON/Map) kembali menjadi objek Flutter
-  factory Logbook.fromMap(Map<String, dynamic> map) {
-    return Logbook(
-      id: map['_id'] as ObjectId?,
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
-    );
-  }
-}
+// ========== Enum & Maps untuk Kategori ==========
 
 enum LogCategory { academic, saving, personal, other }
 
@@ -51,24 +22,42 @@ final Map<LogCategory, String> categoryLabels = {
   LogCategory.other: "Other",
 };
 
+// ========== Model ==========
+
+@HiveType(typeId: 0)
 class LogModel {
-  final ObjectId? id;
+  @HiveField(0)
+  final String? id;
+
+  @HiveField(1)
   final String title;
-  final String date;
+
+  @HiveField(2)
   final String description;
-  final LogCategory category;
-  final String owner; // Pemilik catatan (username)
+
+  @HiveField(3)
+  final String date;
+
+  @HiveField(4)
+  final String authorId; // BARU
+
+  @HiveField(5)
+  final String teamId; // BARU
+
+  @HiveField(6)
+  final LogCategory category; // Simpan sebagai String untuk Hive
 
   LogModel({
     this.id,
     required this.title,
-    required this.date,
     required this.description,
+    required this.date,
+    required this.authorId,
+    required this.teamId,
     this.category = LogCategory.other,
-    this.owner = '',
   });
 
-  // Helper: konversi String dari MongoDB ke LogCategory enum
+  // Helper: konversi String ke LogCategory enum
   static LogCategory _parseCategory(dynamic value) {
     if (value is LogCategory) return value;
     if (value is String) {
@@ -80,27 +69,25 @@ class LogModel {
     return LogCategory.other;
   }
 
-  // Untuk Tugas HOTS: Konversi Map (JSON/BSON) ke Object
+  Map<String, dynamic> toMap() => {
+    '_id': id != null ? ObjectId.fromHexString(id!) : ObjectId(),
+    'title': title,
+    'description': description,
+    'date': date,
+    'authorId': authorId,
+    'teamId': teamId,
+    'category': category.name,
+  };
+
   factory LogModel.fromMap(Map<String, dynamic> map) {
     return LogModel(
-      id: map['_id'] as ObjectId?,
+      id: (map['_id'] as ObjectId?)?.oid,
       title: map['title'] ?? '',
-      date: map['date'] ?? '',
       description: map['description'] ?? '',
+      date: map['date'] ?? '',
+      authorId: map['authorId'] ?? 'unknown_user',
+      teamId: map['teamId'] ?? 'no_team',
       category: _parseCategory(map['category']),
-      owner: map['owner'] ?? '',
     );
-  }
-
-  // Konversi Object ke Map (JSON) untuk disimpan
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id,
-      'title': title,
-      'date': date,
-      'description': description,
-      'category': category.name,
-      'owner': owner,
-    };
   }
 }

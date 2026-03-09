@@ -1,0 +1,9 @@
+name: logbook_app_001
+description: A Flutter application for logbook management.
+dependencies:
+  flutter:
+    sdk: flutter
+  json_serializable: ^6.0.0
+dev_dependencies:
+  build_runner: ^2.0.0
+  json_serializable: ^6.0.0

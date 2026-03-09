@@ -5,7 +5,6 @@ import 'package:logbook_app_001/helpers/log_helper.dart';
 
 class MongoService {
   static final MongoService _instance = MongoService._internal();
-
   // Menggunakan nullable agar kita bisa mengecek status inisialisasi
   Db? _db;
   DbCollection? _collection;
@@ -63,19 +62,19 @@ class MongoService {
     }
   }
 
-  /// READ: Mengambil data dari Cloud (difilter per akun/owner)
-  Future<List<LogModel>> getLogs({String? owner}) async {
+  /// READ: Mengambil data dari Cloud (difilter per team)
+  Future<List<LogModel>> getLogs({String? teamId}) async {
     try {
       final collection = await _getSafeCollection(); // Gunakan jalur aman
 
       await LogHelper.writeLog(
-        "INFO: Fetching data from Cloud${owner != null ? ' for owner: $owner' : ''}...",
+        "INFO: Fetching data from Cloud${teamId != null ? ' for team: $teamId' : ''}...",
         source: _source,
         level: 3,
       );
 
-      // Jika owner diberikan, filter hanya dokumen milik user tersebut
-      final query = owner != null ? where.eq('owner', owner) : null;
+      // Jika teamId diberikan, filter hanya dokumen milik team tersebut
+      final query = teamId != null ? where.eq('teamId', teamId) : null;
       final List<Map<String, dynamic>> data = query != null
           ? await collection.find(query).toList()
           : await collection.find().toList();
@@ -118,7 +117,10 @@ class MongoService {
       if (log.id == null)
         throw Exception("ID Log tidak ditemukan untuk update");
 
-      await collection.replaceOne(where.id(log.id!), log.toMap());
+      await collection.replaceOne(
+        where.id(ObjectId.fromHexString(log.id!)),
+        log.toMap(),
+      );
 
       await LogHelper.writeLog(
         "DATABASE: Update '${log.title}' Berhasil",
@@ -136,10 +138,10 @@ class MongoService {
   }
 
   /// DELETE: Menghapus dokumen
-  Future<void> deleteLog(ObjectId id) async {
+  Future<void> deleteLog(String id) async {
     try {
       final collection = await _getSafeCollection();
-      await collection.remove(where.id(id));
+      await collection.remove(where.id(ObjectId.fromHexString(id)));
 
       await LogHelper.writeLog(
         "DATABASE: Hapus ID $id Berhasil",
