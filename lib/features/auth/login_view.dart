@@ -59,19 +59,23 @@ class _LoginViewState extends State<LoginView> {
     }
 
     // Proses login
-    if (_controller.login(username, password)) {
+    final userData = _controller.login(username, password);
+    if (userData != null) {
       // Login berhasil - reset counter
       setState(() {
         _errorMessage = null;
         _failedAttempts = 0;
       });
 
-      // Pindah ke HomeView
+      // Pindah ke LogView dengan data user lengkap
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              LogView(username: username, teamId: 'team_$username'),
+          builder: (context) => LogView(
+            username: username,
+            teamId: userData['teamId'] as String? ?? '1',
+            role: userData['role'] as String? ?? 'Anggota',
+          ),
         ),
         (route) => false,
       );
@@ -282,6 +286,10 @@ class _LoginViewState extends State<LoginView> {
                       ),
                       const Text(
                         '• aruman : aruman123',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    const Text(
+                        '• reviewer1 : reviewer123',
                         style: TextStyle(fontSize: 12),
                       ),
                     ],

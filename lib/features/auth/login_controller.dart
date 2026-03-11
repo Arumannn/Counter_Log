@@ -1,61 +1,79 @@
 import 'package:flutter/material.dart';
 
 class LoginController {
-  // Map untuk menyimpan multiple account (username: password)
-  final Map<String, String> _accounts = {
-    'admin': 'admin123',
-    'user1': 'password1',
-    'user2': 'password2',
-    'aruman': 'aruman123',
+  /// Data akun: username → {password, role, teamId}
+  /// teamId menggunakan format sederhana: 1, 2, 3.
+  final Map<String, Map<String, String>> _accounts = {
+    'admin': {
+      'password': 'admin123',
+      'role': 'Ketua',
+      'teamId': '1',
+    },
+    'aruman': {
+      'password': 'aruman123',
+      'role': 'Reviewer',
+      'teamId': '1',
+    },
+    'reviewer1': {
+      'password': 'reviewer123',
+      'role': 'Reviewer',
+      'teamId': '1',
+    },
+    'user1': {
+      'password': 'password1',
+      'role': 'Anggota',
+      'teamId': '1',
+    },
+    'user2': {
+      'password': 'password2',
+      'role': 'Anggota',
+      'teamId': '2',
+    },
   };
 
-  // Controller untuk input field
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // Variabel untuk menyimpan user yang sedang login
-  String? _currentUser;
+  Map<String, dynamic>? _currentUser;
 
-  // Getter untuk current user
-  String? get currentUser => _currentUser;
+  /// Kembalikan data user yang sedang login, atau null jika belum login.
+  Map<String, dynamic>? get currentUser => _currentUser;
 
-  // Method untuk login
-  bool login(String username, String password) {
-    // Cek apakah username ada di map
-    if (_accounts.containsKey(username)) {
-      // Cek apakah password cocok
-      if (_accounts[username] == password) {
-        _currentUser = username;
-        return true; // Login berhasil
-      }
+  /// Login.
+  /// Mengembalikan Map {id, username, role, teamId} jika berhasil.
+  Map<String, dynamic>? login(String username, String password) {
+    final account = _accounts[username];
+    if (account != null && account['password'] == password) {
+      _currentUser = {
+        'id': username,
+        'username': username,
+        'role': account['role'] ?? 'Anggota',
+        'teamId': account['teamId'] ?? '1',
+      };
+      return _currentUser;
     }
-    return false; // Login gagal
+    return null;
   }
 
-  // Method untuk logout
   void logout() {
     _currentUser = null;
     usernameController.clear();
     passwordController.clear();
   }
 
-  // Method untuk register akun baru
+  /// Daftarkan akun baru dengan peran default 'Anggota'.
   bool register(String username, String password) {
-    // Cek apakah username sudah ada
-    if (_accounts.containsKey(username)) {
-      return false; // Username sudah dipakai
-    }
-    // Tambah akun baru
-    _accounts[username] = password;
-    return true; // Register berhasil
+    if (_accounts.containsKey(username)) return false;
+    _accounts[username] = {
+      'password': password,
+      'role': 'Anggota',
+      'teamId': '1',
+    };
+    return true;
   }
 
-  // Method untuk mendapatkan semua username (untuk debugging)
-  List<String> getAllUsernames() {
-    return _accounts.keys.toList();
-  }
+  List<String> getAllUsernames() => _accounts.keys.toList();
 
-  // Method untuk dispose controller
   void dispose() {
     usernameController.dispose();
     passwordController.dispose();

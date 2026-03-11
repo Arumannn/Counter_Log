@@ -13,14 +13,15 @@ void main() async {
   // await HistoryService().init();
   await Hive.initFlutter();
 
-  Hive.registerAdapter(LogModelAdapter());
+  if (!Hive.isAdapterRegistered(0)) {
+    Hive.registerAdapter(LogModelAdapter());
+  }
+  if (!Hive.isAdapterRegistered(1)) {
+    Hive.registerAdapter(LogCategoryAdapter());
+  }
 
   await Hive.openBox<LogModel>('offline_logs');
   runApp(const MyApp());
-}
-
-TypeAdapter<LogModel> LogModelAdapter() {
-  return LogModelAdapter();
 }
 
 class MyApp extends StatelessWidget {

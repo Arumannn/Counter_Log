@@ -62,22 +62,19 @@ class MongoService {
     }
   }
 
-  /// READ: Mengambil data dari Cloud (difilter per team)
-  Future<List<LogModel>> getLogs({String? teamId}) async {
+  /// READ: Mengambil data dari Cloud
+  Future<List<LogModel>> getLogs(String teamId) async {
     try {
       final collection = await _getSafeCollection(); // Gunakan jalur aman
 
       await LogHelper.writeLog(
-        "INFO: Fetching data from Cloud${teamId != null ? ' for team: $teamId' : ''}...",
+        "INFO: Fetching data for Team: $teamId",
         source: _source,
         level: 3,
       );
 
-      // Jika teamId diberikan, filter hanya dokumen milik team tersebut
-      final query = teamId != null ? where.eq('teamId', teamId) : null;
-      final List<Map<String, dynamic>> data = query != null
-          ? await collection.find(query).toList()
-          : await collection.find().toList();
+      final List<Map<String, dynamic>> data =
+          await collection.find(where.eq('teamId', teamId)).toList();
       return data.map((json) => LogModel.fromMap(json)).toList();
     } catch (e) {
       await LogHelper.writeLog(

@@ -6,20 +6,46 @@ part 'log_model.g.dart';
 
 // ========== Enum & Maps untuk Kategori ==========
 
-enum LogCategory { academic, saving, personal, other }
+@HiveType(typeId: 1)
+enum LogCategory {
+  @HiveField(0)
+  academic,
+  @HiveField(1)
+  saving,
+  @HiveField(2)
+  personal,
+  @HiveField(3)
+  other,
+}
 
 final Map<LogCategory, IconData> categoryIcons = {
-  LogCategory.academic: Icons.school,
-  LogCategory.saving: Icons.savings,
-  LogCategory.personal: Icons.person,
+  LogCategory.academic: Icons.precision_manufacturing,
+  LogCategory.saving: Icons.memory,
+  LogCategory.personal: Icons.code,
   LogCategory.other: Icons.category,
 };
 
 final Map<LogCategory, String> categoryLabels = {
-  LogCategory.academic: "Academic",
-  LogCategory.saving: "Saving",
-  LogCategory.personal: "Personal",
+  LogCategory.academic: "Mechanical",
+  LogCategory.saving: "Electronic",
+  LogCategory.personal: "Software",
   LogCategory.other: "Other",
+};
+
+/// Warna utama (foreground / icon) tiap kategori
+final Map<LogCategory, Color> categoryColors = {
+  LogCategory.academic: const Color(0xFF2E7D32),
+  LogCategory.saving: const Color(0xFF1565C0),
+  LogCategory.personal: const Color(0xFF6A1B9A),
+  LogCategory.other: const Color(0xFF8B7D6B),
+};
+
+/// Warna latar belakang chip tiap kategori
+final Map<LogCategory, Color> categoryBgColors = {
+  LogCategory.academic: const Color(0xFFE8F5E9),
+  LogCategory.saving: const Color(0xFFE3F2FD),
+  LogCategory.personal: const Color(0xFFF3E5F5),
+  LogCategory.other: const Color(0xFFF5EFE8),
 };
 
 // ========== Model ==========
@@ -47,6 +73,12 @@ class LogModel {
   @HiveField(6)
   final LogCategory category; // Simpan sebagai String untuk Hive
 
+  @HiveField(7)
+  final bool isSynced; // true jika sudah tersimpan/sinkron ke database
+
+  @HiveField(8)
+  final bool isPublic; // default private, true jika dibagikan ke tim
+
   LogModel({
     this.id,
     required this.title,
@@ -55,7 +87,33 @@ class LogModel {
     required this.authorId,
     required this.teamId,
     this.category = LogCategory.other,
+    this.isSynced = true,
+    this.isPublic = false,
   });
+
+  LogModel copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? date,
+    String? authorId,
+    String? teamId,
+    LogCategory? category,
+    bool? isSynced,
+    bool? isPublic,
+  }) {
+    return LogModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      date: date ?? this.date,
+      authorId: authorId ?? this.authorId,
+      teamId: teamId ?? this.teamId,
+      category: category ?? this.category,
+      isSynced: isSynced ?? this.isSynced,
+      isPublic: isPublic ?? this.isPublic,
+    );
+  }
 
   // Helper: konversi String ke LogCategory enum
   static LogCategory _parseCategory(dynamic value) {
@@ -70,14 +128,15 @@ class LogModel {
   }
 
   Map<String, dynamic> toMap() => {
-    '_id': id != null ? ObjectId.fromHexString(id!) : ObjectId(),
-    'title': title,
-    'description': description,
-    'date': date,
-    'authorId': authorId,
-    'teamId': teamId,
-    'category': category.name,
-  };
+        '_id': id != null ? ObjectId.fromHexString(id!) : ObjectId(),
+        'title': title,
+        'description': description,
+        'date': date,
+        'authorId': authorId,
+        'teamId': teamId,
+        'category': category.name,
+        'isPublic': isPublic,
+      };
 
   factory LogModel.fromMap(Map<String, dynamic> map) {
     return LogModel(
@@ -88,6 +147,9 @@ class LogModel {
       authorId: map['authorId'] ?? 'unknown_user',
       teamId: map['teamId'] ?? 'no_team',
       category: _parseCategory(map['category']),
+      // Data dari cloud dianggap sudah sinkron
+      isSynced: true,
+      isPublic: map['isPublic'] == true,
     );
   }
 }
