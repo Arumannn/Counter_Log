@@ -387,7 +387,7 @@ class _LogEditorPageState extends State<LogEditorPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<LogCategory>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: InputDecoration(
                       labelText: "Kategori",
                       prefixIcon: Icon(

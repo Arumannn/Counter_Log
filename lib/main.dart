@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logbook_app_001/features/logbook/log_view.dart';
 import 'features/onboarding/onboarding_view.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -164,7 +165,7 @@ class MyApp extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
-      home: const OnboardingView(),
+      home: const CounterView(),
     );
   }
 }

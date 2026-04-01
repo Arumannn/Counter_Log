@@ -6,6 +6,8 @@ import 'package:logbook_app_001/services/mongo_service.dart';
 import 'package:logbook_app_001/helpers/log_helper.dart';
 import 'package:logbook_app_001/services/access_policy.dart';
 
+// MODUL 3 - LogController untuk mengelola data logbook dengan strategi Offline-First.
+// MODUL 4 - Save Data to Cloud Service: sinkronisasi data ke MongoDB Atlas.
 class LogController {
   final ValueNotifier<List<LogModel>> logsNotifier =
       ValueNotifier<List<LogModel>>([]);

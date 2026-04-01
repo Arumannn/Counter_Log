@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+// MODUL 2 - LoginController untuk mengelola login, logout, dan pendaftaran akun.
 class LoginController {
   /// Data akun: username → {password, role, teamId}
   /// teamId menggunakan format sederhana: 1, 2, 3.
@@ -59,17 +59,6 @@ class LoginController {
     _currentUser = null;
     usernameController.clear();
     passwordController.clear();
-  }
-
-  /// Daftarkan akun baru dengan peran default 'Anggota'.
-  bool register(String username, String password) {
-    if (_accounts.containsKey(username)) return false;
-    _accounts[username] = {
-      'password': password,
-      'role': 'Anggota',
-      'teamId': '1',
-    };
-    return true;
   }
 
   List<String> getAllUsernames() => _accounts.keys.toList();
