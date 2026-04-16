@@ -22,19 +22,26 @@ class _VisionViewState extends State<VisionView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Smart-Patrol Vision")),
-      body: ListenableBuilder(
-        listenable: _visionController,
-        builder: (context, child) {
-          // Tampilkan loading jika kamera sedang inisialisasi
-          if (!_visionController.isInitialized) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return WillPopScope(
+      onWillPop: () async {
+        // Guard resource saat user menekan tombol back.
+        await _visionController.releaseCamera();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text("Smart-Patrol Vision")),
+        body: ListenableBuilder(
+          listenable: _visionController,
+          builder: (context, child) {
+            // Tampilkan loading jika kamera sedang inisialisasi
+            if (!_visionController.isInitialized) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          // Lanjut ke struktur Stack di sub-langkah berikutnya
-          return _buildVisionStack();
-        },
+            // Lanjut ke struktur Stack di sub-langkah berikutnya
+            return _buildVisionStack();
+          },
+        ),
       ),
     );
   }
@@ -84,7 +91,10 @@ class _VisionViewState extends State<VisionView> {
         // Layer ini transparan dan berada tepat di atas kamera
         Positioned.fill(
           child: CustomPaint(
-            painter: DamagePainter(), // Langkah 4
+            painter: DamagePainter(
+              detectionCenter: _visionController.mockDetectionCenter,
+              detectionWidthRatio: _visionController.mockDetectionWidthRatio,
+            ),
           ),
         ),
       ],
