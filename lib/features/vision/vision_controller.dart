@@ -8,6 +8,120 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'vision_image_processor.dart';
 
+enum VisionInteractiveFilterId {
+  natural,
+  contrastBoost,
+  brightPop,
+  histogramFocus,
+  blurSoft,
+  sharpenPlus,
+  edgeDetect,
+}
+
+class VisionInteractiveFilter {
+  const VisionInteractiveFilter({
+    required this.id,
+    required this.label,
+    required this.filterType,
+    required this.filterIntensity,
+    required this.applyContrast,
+    required this.customContrast,
+    required this.customBrightness,
+    required this.customSaturation,
+    required this.showHistogram,
+  });
+
+  final VisionInteractiveFilterId id;
+  final String label;
+  final VisionFilterType filterType;
+  final double filterIntensity;
+  final bool applyContrast;
+  final double customContrast;
+  final double customBrightness;
+  final double customSaturation;
+  final bool showHistogram;
+}
+
+const List<VisionInteractiveFilter> visionInteractiveFilters = [
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.natural,
+    label: 'Natural',
+    filterType: VisionFilterType.none,
+    filterIntensity: 0.0,
+    applyContrast: false,
+    customContrast: 1.0,
+    customBrightness: 0.0,
+    customSaturation: 1.0,
+    showHistogram: false,
+  ),
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.contrastBoost,
+    label: 'Contrast+',
+    filterType: VisionFilterType.none,
+    filterIntensity: 0.55,
+    applyContrast: true,
+    customContrast: 1.2,
+    customBrightness: 0.0,
+    customSaturation: 1.05,
+    showHistogram: false,
+  ),
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.brightPop,
+    label: 'Bright Pop',
+    filterType: VisionFilterType.none,
+    filterIntensity: 0.7,
+    applyContrast: true,
+    customContrast: 1.08,
+    customBrightness: 0.08,
+    customSaturation: 1.08,
+    showHistogram: false,
+  ),
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.histogramFocus,
+    label: 'Histogram',
+    filterType: VisionFilterType.none,
+    filterIntensity: 0.68,
+    applyContrast: true,
+    customContrast: 1.16,
+    customBrightness: 0.0,
+    customSaturation: 0.95,
+    showHistogram: true,
+  ),
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.blurSoft,
+    label: 'Blur',
+    filterType: VisionFilterType.blur,
+    filterIntensity: 0.72,
+    applyContrast: false,
+    customContrast: 1.0,
+    customBrightness: 0.0,
+    customSaturation: 1.0,
+    showHistogram: false,
+  ),
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.sharpenPlus,
+    label: 'Sharpen',
+    filterType: VisionFilterType.sharpen,
+    filterIntensity: 0.88,
+    applyContrast: true,
+    customContrast: 1.12,
+    customBrightness: -0.01,
+    customSaturation: 1.03,
+    showHistogram: false,
+  ),
+  VisionInteractiveFilter(
+    id: VisionInteractiveFilterId.edgeDetect,
+    label: 'Edge',
+    filterType: VisionFilterType.edgeDetection,
+    filterIntensity: 0.8,
+    applyContrast: true,
+    customContrast: 1.26,
+    customBrightness: -0.02,
+    customSaturation: 0.88,
+    showHistogram: true,
+  ),
+];
+
 class VisionController extends ChangeNotifier with WidgetsBindingObserver {
   CameraController? controller;
   bool isInitialized = false;
@@ -24,6 +138,14 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
   bool applyContrast = true;
   bool showHistogram = true;
   double filterIntensity = 0.8;
+  double customContrast = 1.0;
+  double customBrightness = 0.0;
+  double customSaturation = 1.0;
+  VisionInteractiveFilterId selectedInteractiveFilter =
+      VisionInteractiveFilterId.natural;
+  Map<VisionInteractiveFilterId, Uint8List> filterPreviewBytes =
+      const <VisionInteractiveFilterId, Uint8List>{};
+  bool isGeneratingFilterPreviews = false;
 
   Uint8List? capturedImageBytes;
   Uint8List? processedImageBytes;
@@ -34,6 +156,7 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _processDebounceTimer;
   bool _isInitializing = false;
   bool _isDisposed = false;
+  int _previewGenerationToken = 0;
 
   // Koordinat normalized (0..1) agar box mudah dipetakan ke ukuran layar apapun.
   Offset _mockDetectionCenter = const Offset(0.5, 0.5);
@@ -52,6 +175,8 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
 
   bool get hasCapturedImage => capturedImageBytes != null;
   bool get hasProcessedImage => processedImageBytes != null;
+  List<VisionInteractiveFilter> get availableInteractiveFilters =>
+      visionInteractiveFilters;
 
   VisionController() {
     // Mendaftarkan observer agar bisa memantau status aplikasi (Lifecycle)
@@ -131,17 +256,72 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
     final widthRatio = 0.2 + (_random.nextDouble() * 0.18); // 20% - 38%
     final half = widthRatio / 2;
 
-    const detections = <({String code, String name, String severityCode, String severityLabel})>[
-      (code: 'RD-001', name: 'Longitudinal Crack', severityCode: 'D00', severityLabel: 'Light'),
-      (code: 'RD-002', name: 'Transverse Crack', severityCode: 'D10', severityLabel: 'Minor'),
-      (code: 'RD-003', name: 'Alligator Crack', severityCode: 'D20', severityLabel: 'Moderate'),
-      (code: 'RD-004', name: 'Pothole', severityCode: 'D40', severityLabel: 'Severe'),
-      (code: 'RD-005', name: 'Rutting', severityCode: 'D20', severityLabel: 'Moderate'),
-      (code: 'RD-006', name: 'Depression', severityCode: 'D20', severityLabel: 'Moderate'),
-      (code: 'RD-007', name: 'Shoving', severityCode: 'D10', severityLabel: 'Minor'),
-      (code: 'RD-008', name: 'Edge Break', severityCode: 'D20', severityLabel: 'Moderate'),
-      (code: 'RD-009', name: 'Patch Failure', severityCode: 'D40', severityLabel: 'Severe'),
-      (code: 'RD-010', name: 'Bleeding', severityCode: 'D00', severityLabel: 'Light'),
+    const detections = <({
+      String code,
+      String name,
+      String severityCode,
+      String severityLabel
+    })>[
+      (
+        code: 'RD-001',
+        name: 'Longitudinal Crack',
+        severityCode: 'D00',
+        severityLabel: 'Light'
+      ),
+      (
+        code: 'RD-002',
+        name: 'Transverse Crack',
+        severityCode: 'D10',
+        severityLabel: 'Minor'
+      ),
+      (
+        code: 'RD-003',
+        name: 'Alligator Crack',
+        severityCode: 'D20',
+        severityLabel: 'Moderate'
+      ),
+      (
+        code: 'RD-004',
+        name: 'Pothole',
+        severityCode: 'D40',
+        severityLabel: 'Severe'
+      ),
+      (
+        code: 'RD-005',
+        name: 'Rutting',
+        severityCode: 'D20',
+        severityLabel: 'Moderate'
+      ),
+      (
+        code: 'RD-006',
+        name: 'Depression',
+        severityCode: 'D20',
+        severityLabel: 'Moderate'
+      ),
+      (
+        code: 'RD-007',
+        name: 'Shoving',
+        severityCode: 'D10',
+        severityLabel: 'Minor'
+      ),
+      (
+        code: 'RD-008',
+        name: 'Edge Break',
+        severityCode: 'D20',
+        severityLabel: 'Moderate'
+      ),
+      (
+        code: 'RD-009',
+        name: 'Patch Failure',
+        severityCode: 'D40',
+        severityLabel: 'Severe'
+      ),
+      (
+        code: 'RD-010',
+        name: 'Bleeding',
+        severityCode: 'D00',
+        severityLabel: 'Light'
+      ),
     ];
 
     final selected = detections[_random.nextInt(detections.length)];
@@ -212,6 +392,7 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
   void setFilter(VisionFilterType filter) {
     selectedFilter = filter;
     selectedPreset = VisionPresetStyle.original;
+    selectedInteractiveFilter = VisionInteractiveFilterId.natural;
     if (!_isDisposed) {
       notifyListeners();
     }
@@ -223,9 +404,36 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
     applyContrast = config.applyContrast;
     selectedFilter = config.filterType;
     filterIntensity = config.filterIntensity;
+    customContrast = 1.0;
+    customBrightness = 0.0;
+    customSaturation = 1.0;
+    selectedInteractiveFilter = VisionInteractiveFilterId.natural;
     if (!_isDisposed) {
       notifyListeners();
     }
+    requestReprocessCapturedFrame();
+  }
+
+  void selectInteractiveFilter(VisionInteractiveFilterId id) {
+    final selected = visionInteractiveFilters.firstWhere(
+      (item) => item.id == id,
+      orElse: () => visionInteractiveFilters.first,
+    );
+
+    selectedInteractiveFilter = selected.id;
+    selectedPreset = VisionPresetStyle.original;
+    applyContrast = selected.applyContrast;
+    selectedFilter = selected.filterType;
+    filterIntensity = selected.filterIntensity;
+    customContrast = selected.customContrast;
+    customBrightness = selected.customBrightness;
+    customSaturation = selected.customSaturation;
+    showHistogram = selected.showHistogram;
+
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+
     requestReprocessCapturedFrame();
   }
 
@@ -265,7 +473,10 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> captureFrame() async {
     final cameraController = controller;
-    if (!isInitialized || cameraController == null || isCapturing || isProcessing) {
+    if (!isInitialized ||
+        cameraController == null ||
+        isCapturing ||
+        isProcessing) {
       return;
     }
 
@@ -278,8 +489,23 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final captured = await cameraController.takePicture();
       capturedImageBytes = await captured.readAsBytes();
-      processedImageBytes = null;
+      processedImageBytes = capturedImageBytes;
       histogramBins = null;
+      selectedInteractiveFilter = VisionInteractiveFilterId.natural;
+      applyContrast = false;
+      selectedFilter = VisionFilterType.none;
+      filterIntensity = 0.0;
+      customContrast = 1.0;
+      customBrightness = 0.0;
+      customSaturation = 1.0;
+      selectedPreset = VisionPresetStyle.original;
+      showHistogram = true;
+      debugPrint(
+        '[HistogramDebug][captureFrame] Captured bytes=${capturedImageBytes?.length ?? 0}. '
+        'State reset -> showHistogram=$showHistogram, filter=$selectedFilter, intensity=$filterIntensity',
+      );
+      unawaited(generateInteractiveFilterPreviews());
+      requestReprocessCapturedFrame();
       processMessage = 'Gambar berhasil ditangkap. Siap diproses.';
     } catch (e) {
       processMessage = 'Gagal menangkap gambar: $e';
@@ -304,16 +530,40 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     try {
+      debugPrint(
+        '[HistogramDebug][process:start] includeHistogram=$showHistogram, '
+        'sourceBytes=${sourceBytes.length}, filter=$selectedFilter, preset=$selectedPreset',
+      );
+
       final result = await VisionImageProcessor.process(
         sourceBytes: sourceBytes,
         applyContrast: applyContrast,
         filterType: selectedFilter,
         filterIntensity: filterIntensity,
         presetStyle: selectedPreset,
+        customContrast: customContrast,
+        customBrightness: customBrightness,
+        customSaturation: customSaturation,
+        includeHistogram: showHistogram,
       );
 
       processedImageBytes = result.imageBytes;
       histogramBins = result.histogramBins;
+      final binsCount = histogramBins?.length ?? 0;
+      final totalBinSamples = histogramBins?.fold<int>(0, (a, b) => a + b) ?? 0;
+      debugPrint(
+        '[HistogramDebug][process:done] binsCount=$binsCount, totalBinSamples=$totalBinSamples, '
+        'showHistogram=$showHistogram',
+      );
+      if (!showHistogram) {
+        debugPrint(
+          '[HistogramDebug][process:hint] Histogram tidak akan ditampilkan di preview karena showHistogram=false.',
+        );
+      } else if (binsCount == 0) {
+        debugPrint(
+          '[HistogramDebug][process:warn] showHistogram=true tetapi bins kosong.',
+        );
+      }
       processMessage = 'Pemrosesan selesai.';
     } catch (e) {
       processMessage = 'Gagal memproses citra: $e';
@@ -325,12 +575,72 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> generateInteractiveFilterPreviews() async {
+    final sourceBytes = capturedImageBytes;
+    if (sourceBytes == null) {
+      return;
+    }
+
+    final generationId = ++_previewGenerationToken;
+    filterPreviewBytes = const <VisionInteractiveFilterId, Uint8List>{};
+    isGeneratingFilterPreviews = true;
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+
+    final nextPreviews = <VisionInteractiveFilterId, Uint8List>{};
+    for (final item in visionInteractiveFilters) {
+      try {
+        final result = await VisionImageProcessor.process(
+          sourceBytes: sourceBytes,
+          applyContrast: item.applyContrast,
+          filterType: item.filterType,
+          filterIntensity: item.filterIntensity,
+          presetStyle: VisionPresetStyle.original,
+          customContrast: item.customContrast,
+          customBrightness: item.customBrightness,
+          customSaturation: item.customSaturation,
+          maxDimension: 220,
+          includeHistogram: false,
+        );
+
+        if (_isDisposed || generationId != _previewGenerationToken) {
+          return;
+        }
+
+        nextPreviews[item.id] = result.imageBytes;
+        filterPreviewBytes = Map<VisionInteractiveFilterId, Uint8List>.from(
+          nextPreviews,
+        );
+        if (!_isDisposed) {
+          notifyListeners();
+        }
+      } catch (_) {
+        if (_isDisposed || generationId != _previewGenerationToken) {
+          return;
+        }
+      }
+    }
+
+    if (_isDisposed || generationId != _previewGenerationToken) {
+      return;
+    }
+
+    isGeneratingFilterPreviews = false;
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
   void clearCapturedFrame() {
+    _previewGenerationToken++;
     _processDebounceTimer?.cancel();
     _processDebounceTimer = null;
     capturedImageBytes = null;
     processedImageBytes = null;
     histogramBins = null;
+    filterPreviewBytes = const <VisionInteractiveFilterId, Uint8List>{};
+    isGeneratingFilterPreviews = false;
     processMessage = null;
     if (!_isDisposed) {
       notifyListeners();

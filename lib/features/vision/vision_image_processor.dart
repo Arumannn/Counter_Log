@@ -138,6 +138,11 @@ class VisionImageProcessor {
     required VisionFilterType filterType,
     required double filterIntensity,
     required VisionPresetStyle presetStyle,
+    double customContrast = 1.0,
+    double customBrightness = 0.0,
+    double customSaturation = 1.0,
+    int? maxDimension,
+    bool includeHistogram = true,
   }) {
     return compute(
       _processInIsolate,
@@ -147,6 +152,11 @@ class VisionImageProcessor {
         'filter': filterType.name,
         'intensity': filterIntensity,
         'preset': presetStyle.name,
+        'customContrast': customContrast,
+        'customBrightness': customBrightness,
+        'customSaturation': customSaturation,
+        'maxDimension': maxDimension ?? 0,
+        'includeHistogram': includeHistogram,
       },
     );
   }
@@ -158,6 +168,13 @@ VisionProcessingResult _processInIsolate(Map<String, Object> payload) {
   final filterName = payload['filter'] as String;
   final intensity = (payload['intensity'] as num).toDouble().clamp(0.0, 1.0);
   final presetName = payload['preset'] as String;
+  final customContrast = (payload['customContrast'] as num?)?.toDouble() ?? 1.0;
+  final customBrightness =
+      (payload['customBrightness'] as num?)?.toDouble() ?? 0.0;
+  final customSaturation =
+      (payload['customSaturation'] as num?)?.toDouble() ?? 1.0;
+  final maxDimension = (payload['maxDimension'] as num?)?.toInt() ?? 0;
+  final includeHistogram = payload['includeHistogram'] as bool? ?? true;
   final presetStyle = VisionPresetStyle.values.firstWhere(
     (value) => value.name == presetName,
     orElse: () => VisionPresetStyle.original,
@@ -169,27 +186,41 @@ VisionProcessingResult _processInIsolate(Map<String, Object> payload) {
   }
 
   final original = decoded.clone();
-  img.Image working = decoded.clone();
+  final workingSource =
+      maxDimension > 0 ? _downscaleIfNeeded(decoded, maxDimension) : decoded;
+  final sourceForBlend =
+      maxDimension > 0 ? _downscaleIfNeeded(original, maxDimension) : original;
+  img.Image working = workingSource.clone();
 
   final presetConfig = visionPresetConfig(presetStyle);
 
-  if (applyContrast && presetStyle == VisionPresetStyle.original) {
-    working = img.adjustColor(
-      working,
-      contrast: 1.25,
-      brightness: 0.02,
-      saturation: 1.04,
-    );
-  }
+  final contrastMultiplier =
+      (applyContrast && presetStyle == VisionPresetStyle.original) ? 1.25 : 1.0;
+  final brightnessOffset =
+      (applyContrast && presetStyle == VisionPresetStyle.original) ? 0.02 : 0.0;
+  final saturationMultiplier =
+      (applyContrast && presetStyle == VisionPresetStyle.original) ? 1.04 : 1.0;
+
+  final finalContrast =
+      (presetConfig.contrast * contrastMultiplier * customContrast)
+          .clamp(0.2, 3.0);
+  final finalBrightness =
+      (presetConfig.brightness + brightnessOffset + customBrightness)
+          .clamp(-0.45, 0.45);
+  final brightnessMultiplier = (1.0 + finalBrightness).clamp(0.0, 2.0);
+  final finalSaturation =
+      (presetConfig.saturation * saturationMultiplier * customSaturation)
+          .clamp(0.0, 3.0);
 
   if (presetConfig.forceGrayscale) {
     working = img.grayscale(working);
   } else {
     working = img.adjustColor(
       working,
-      contrast: presetConfig.contrast,
-      brightness: presetConfig.brightness,
-      saturation: presetConfig.saturation,
+      contrast: finalContrast,
+      // image.adjustColor expects brightness multiplier (1.0 = unchanged).
+      brightness: brightnessMultiplier,
+      saturation: finalSaturation,
     );
   }
 
@@ -243,18 +274,40 @@ VisionProcessingResult _processInIsolate(Map<String, Object> payload) {
 
   if (effectiveIntensity < 1.0) {
     working = _blendWithOriginal(
-      original: original,
+      original: sourceForBlend,
       filtered: working,
       amount: effectiveIntensity,
     );
   }
 
-  final histogramBins = _buildHistogram(working, bins: 64);
+  final histogramBins =
+      includeHistogram ? _buildHistogram(working, bins: 64) : const <int>[];
   final encoded = Uint8List.fromList(img.encodeJpg(working, quality: 92));
 
   return VisionProcessingResult(
     imageBytes: encoded,
     histogramBins: histogramBins,
+  );
+}
+
+img.Image _downscaleIfNeeded(img.Image image, int maxDimension) {
+  final longest = image.width > image.height ? image.width : image.height;
+  if (longest <= maxDimension) {
+    return image.clone();
+  }
+
+  if (image.width >= image.height) {
+    return img.copyResize(
+      image,
+      width: maxDimension,
+      interpolation: img.Interpolation.linear,
+    );
+  }
+
+  return img.copyResize(
+    image,
+    height: maxDimension,
+    interpolation: img.Interpolation.linear,
   );
 }
 
@@ -273,10 +326,10 @@ img.Image _blendWithOriginal({
       final out = blended.getPixel(x, y);
 
       out
-        ..r = (base.r * inverse + fx.r * amount).round()
-        ..g = (base.g * inverse + fx.g * amount).round()
-        ..b = (base.b * inverse + fx.b * amount).round()
-        ..a = (base.a * inverse + fx.a * amount).round();
+        ..r = (base.r * inverse + fx.r * amount)
+        ..g = (base.g * inverse + fx.g * amount)
+        ..b = (base.b * inverse + fx.b * amount)
+        ..a = (base.a * inverse + fx.a * amount);
     }
   }
 
@@ -290,15 +343,20 @@ List<int> _buildHistogram(img.Image image, {required int bins}) {
   for (var y = 0; y < image.height; y++) {
     for (var x = 0; x < image.width; x++) {
       final pixel = image.getPixel(x, y);
-      final luminance = (
-        (pixel.r * 299) +
-        (pixel.g * 587) +
-        (pixel.b * 114)
-      ) ~/ 1000;
+      final r = _channelToByte(pixel.r);
+      final g = _channelToByte(pixel.g);
+      final b = _channelToByte(pixel.b);
+      final luminance = (((r * 299) + (g * 587) + (b * 114)) / 1000).round();
       final index = (luminance / bucketSize).floor().clamp(0, bins - 1);
       histogram[index]++;
     }
   }
 
   return histogram;
+}
+
+int _channelToByte(num channel) {
+  final value = channel.toDouble();
+  final normalized = value <= 1.0 ? value * 255.0 : value;
+  return normalized.round().clamp(0, 255);
 }
