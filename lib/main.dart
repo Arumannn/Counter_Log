@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:logbook_app_001/features/logbook/log_view.dart';
+// import 'package:logbook_app_001/features/logbook/log_view.dart';
+import 'package:camera/camera.dart';
 import 'features/onboarding/onboarding_view.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'features/logbook/models/log_model.dart';
+
+List<CameraDescription> cameras = [];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,14 @@ void main() async {
   }
 
   await Hive.openBox<LogModel>('offline_logs');
+  try {
+    // Ambil daftar kamera yang tersedia di perangkat
+    cameras = await availableCameras();
+  } on CameraException catch (e) {
+    print('Error: ${e.code}\nError Message: ${e.description}');
+  }
+  
+
   runApp(const MyApp());
 }
 
@@ -165,7 +176,7 @@ class MyApp extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
-      home: const CounterView(),
+      home: const OnboardingView(),
     );
   }
 }

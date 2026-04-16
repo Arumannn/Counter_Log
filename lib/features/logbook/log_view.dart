@@ -8,6 +8,7 @@ import 'package:logbook_app_001/features/logbook/models/log_model.dart';
 import 'package:logbook_app_001/helpers/log_helper.dart';
 import 'package:logbook_app_001/services/access_policy.dart';
 import 'package:logbook_app_001/services/mongo_service.dart';
+import 'package:logbook_app_001/features/vision/vision_view.dart';
 
 class LogView extends StatefulWidget {
   final String username;
@@ -256,6 +257,10 @@ class _LogViewState extends State<LogView> {
             icon: const Icon(Icons.logout),
             onPressed: _confirmLogout,
           ),
+          IconButton(onPressed: () => Navigator.push(
+            context, MaterialPageRoute
+            (builder: (context) => const VisionView())), 
+            icon: const Icon(Icons.camera))
         ],
       ),
       body: ValueListenableBuilder<List<LogModel>>(
