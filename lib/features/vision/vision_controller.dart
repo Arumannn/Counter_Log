@@ -174,7 +174,6 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
   String get mockSeverityLabel => _mockSeverityLabel;
 
   bool get hasCapturedImage => capturedImageBytes != null;
-  bool get hasProcessedImage => processedImageBytes != null;
   List<VisionInteractiveFilter> get availableInteractiveFilters =>
       visionInteractiveFilters;
 
@@ -627,21 +626,6 @@ class VisionController extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     isGeneratingFilterPreviews = false;
-    if (!_isDisposed) {
-      notifyListeners();
-    }
-  }
-
-  void clearCapturedFrame() {
-    _previewGenerationToken++;
-    _processDebounceTimer?.cancel();
-    _processDebounceTimer = null;
-    capturedImageBytes = null;
-    processedImageBytes = null;
-    histogramBins = null;
-    filterPreviewBytes = const <VisionInteractiveFilterId, Uint8List>{};
-    isGeneratingFilterPreviews = false;
-    processMessage = null;
     if (!_isDisposed) {
       notifyListeners();
     }

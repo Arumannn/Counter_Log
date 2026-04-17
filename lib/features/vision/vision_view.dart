@@ -1,6 +1,6 @@
 // ============================================================
-// vision_view.dart — Smart-Patrol Vision  (Redesigned UI)
-// Gaya: Immersive camera · Glassmorphism · Instagram-filter UX
+// vision_view.dart — Smart-Patrol Vision
+// Gaya: Immersive camera · Vintage warm overlay · Konsisten dengan main.dart
 // ============================================================
 
 import 'vision_controller.dart';
@@ -13,23 +13,35 @@ import 'histogram_painter.dart';
 import 'histogram_analysis_page.dart';
 import 'vision_image_processor.dart';
 
-enum VisionWorkspaceMode { camera, capture, process }
+enum VisionWorkspaceMode { camera, process }
 
-// ─── Design Tokens ───────────────────────────────────────────
+// ─── Design Tokens — Vintage Warm Palette ────────────────────
+// Selaras dengan tema utama di main.dart
 class _Tokens {
-  static const accent = Color(0xFF00E5CC);
-  static const accentDim = Color(0x3300E5CC);
-  static const surface = Color(0xFF080C10);
-  static const glass = Color(0x99080C10);
-  static const glassLight = Color(0x33FFFFFF);
-  static const glassStroke = Color(0x26FFFFFF);
-  static const warn = Color(0xFFFF6B35);
-  static const modeCamera = Color(0xFF4DD17A);
-  static const modeCapture = Color(0xFF5B9CF6);
-  static const modeProcess = Color(0xFF00E5CC);
+  // Core vintage palette (mirrors main.dart)
+  static const warmBrown    = Color(0xFF8A6F4D); // Primary
+  static const mutedGold    = Color(0xFFC2A35C); // Accent
+  static const warmBeige    = Color(0xFFE6D8C3); // Background ref
+  static const softCream    = Color(0xFFF3EBDD); // Surface ref
+  static const charcoalGray = Color(0xFF3D3D3D); // Text ref
+  static const taupe        = Color(0xFF8B7D6B); // Secondary text
+  static const errorRed     = Color(0xFF9E5A5A); // Error/warn
 
-  static const double radiusPill = 999;
-  static const double radiusCard = 20;
+  // Camera overlay versions (semi-transparent for legibility on feed)
+  static const accent     = mutedGold;
+  static const accentDim  = Color(0x33C2A35C);
+  static const surface    = Color(0xFF1A120A); // Very dark warm brown (camera BG)
+  static const glass      = Color(0xBB1A0E04); // Warm dark glass
+  static const glassLight = Color(0x22C2A35C);
+  static const glassStroke = Color(0x50C2A35C); // Warm gold stroke
+  static const warn       = errorRed;
+
+  // Mode badge colours
+  static const modeCamera  = Color(0xFF8A6F4D); // warmBrown
+  static const modeProcess = Color(0xFFC2A35C); // mutedGold
+
+  static const double radiusPill   = 999;
+  static const double radiusCard   = 20;
   static const double radiusFilter = 16;
 
   static BoxDecoration glassCard({Color? color, double radius = radiusCard}) =>
@@ -163,7 +175,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     );
   }
 
-  // ─── Vision Stage (overlays live here) ───────────────────────
+  // ─── Vision Stage ─────────────────────────────────────────────
   Widget _buildVisionStage() {
     final cam = _visionController.controller!;
     final previewSize = cam.value.previewSize;
@@ -174,7 +186,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         // Content (camera / image)
         _buildStageContent(cam, previewSize),
 
-        // ① Cinematic vignette gradient overlay
+        // ① Cinematic vignette — warm-tinted edges
         Positioned.fill(
           child: IgnorePointer(
             child: DecoratedBox(
@@ -183,10 +195,11 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.55),
+                    // Warm dark top instead of neutral black
+                    const Color(0xFF1A0E04).withValues(alpha: 0.60),
                     Colors.transparent,
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.80),
+                    const Color(0xFF1A0E04).withValues(alpha: 0.85),
                   ],
                   stops: const [0.0, 0.22, 0.55, 1.0],
                 ),
@@ -203,7 +216,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             ),
           ),
 
-        // ③ Damage-detection overlay (camera + overlay enabled)
+        // ③ Damage-detection overlay
         if (_workspaceMode == VisionWorkspaceMode.camera &&
             _visionController.isOverlayEnabled)
           Positioned.fill(
@@ -257,7 +270,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                   ? Icons.flash_on_rounded
                   : Icons.flash_off_rounded,
               isActive: _visionController.isTorchEnabled,
-              accentColor: const Color(0xFFFFD166),
+              accentColor: _Tokens.mutedGold,
               onTap: () => _visionController.toggleTorch(),
             ),
             const SizedBox(width: 8),
@@ -282,15 +295,13 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     );
   }
 
+  // ─── Status Badge ─────────────────────────────────────────────
   Widget _buildStatusBadge() {
     final (label, color) = switch (_workspaceMode) {
-      VisionWorkspaceMode.camera => ('LIVE', _Tokens.modeCamera),
-      VisionWorkspaceMode.capture => ('CAPTURE', _Tokens.modeCapture),
-      VisionWorkspaceMode.process => ('PROCESS', _Tokens.modeProcess),
+      VisionWorkspaceMode.camera  => ('LIVE', _Tokens.modeCamera),
+      VisionWorkspaceMode.process => ('PROSES', _Tokens.modeProcess),
     };
 
-    // Wrap in ConstrainedBox so the badge never exceeds its Expanded slot,
-    // preventing the "RIGHT OVERFLOWED BY N px" debug banner.
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 220),
       child: Container(
@@ -303,10 +314,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Pulse dot
             _PulseDot(color: color),
             const SizedBox(width: 6),
-            // Use Flexible so the title shrinks instead of overflowing
             Flexible(
               child: Text(
                 'Smart-Patrol',
@@ -324,8 +333,9 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.18),
+                color: color.withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color.withValues(alpha: 0.40)),
               ),
               child: Text(
                 label,
@@ -351,8 +361,9 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
           colors: [
-            Colors.black.withValues(alpha: 0.96),
-            Colors.black.withValues(alpha: 0.0),
+            // Warm dark brown fade — integrates better with vintage palette
+            const Color(0xFF1A0E04).withValues(alpha: 0.97),
+            const Color(0xFF1A0E04).withValues(alpha: 0.0),
           ],
           stops: const [0.0, 1.0],
         ),
@@ -370,7 +381,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             if (_workspaceMode == VisionWorkspaceMode.process)
               _buildPresetBar(),
 
-            // Intensity slider (only in capture/process)
+            // Intensity slider (only in process)
             if (_workspaceMode != VisionWorkspaceMode.camera)
               _buildIntensityRow(),
 
@@ -393,8 +404,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                 child: Text(
                   _visionController.processMessage!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white38,
+                  style: TextStyle(
+                    color: _Tokens.mutedGold.withValues(alpha: 0.55),
                     fontSize: 11,
                     letterSpacing: 0.3,
                   ),
@@ -406,7 +417,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     );
   }
 
-  // ─── Instagram-style Filter Strip ────────────────────────────
+  // ─── Filter Strip ─────────────────────────────────────────────
   Widget _buildFilterStrip() {
     final filters = _visionController.availableInteractiveFilters;
     final isLoading = _visionController.isGeneratingFilterPreviews;
@@ -418,10 +429,10 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
           padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
           child: Row(
             children: [
-              const Text(
+              Text(
                 'FILTER',
                 style: TextStyle(
-                  color: Colors.white38,
+                  color: _Tokens.mutedGold.withValues(alpha: 0.70),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2,
@@ -429,12 +440,12 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
               ),
               if (isLoading) ...[
                 const SizedBox(width: 10),
-                const SizedBox(
+                SizedBox(
                   width: 10,
                   height: 10,
                   child: CircularProgressIndicator(
                     strokeWidth: 1.5,
-                    color: Colors.white38,
+                    color: _Tokens.mutedGold.withValues(alpha: 0.60),
                   ),
                 ),
               ],
@@ -474,15 +485,15 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                               BorderRadius.circular(_Tokens.radiusFilter),
                           border: Border.all(
                             color: isSelected
-                                ? _Tokens.accent
+                                ? _Tokens.mutedGold
                                 : Colors.transparent,
                             width: 2.5,
                           ),
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color:
-                                        _Tokens.accent.withValues(alpha: 0.45),
+                                    color: _Tokens.mutedGold
+                                        .withValues(alpha: 0.40),
                                     blurRadius: 12,
                                     spreadRadius: 0,
                                   ),
@@ -493,14 +504,16 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(13.5),
                           child: (isLoading || previewBytes == null)
                               ? Container(
-                                  color: Colors.white,
-                                  child: const Center(
+                                  color: _Tokens.warmBrown
+                                      .withValues(alpha: 0.15),
+                                  child: Center(
                                     child: SizedBox(
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 1.8,
-                                        color: Colors.white38,
+                                        color: _Tokens.mutedGold
+                                            .withValues(alpha: 0.55),
                                       ),
                                     ),
                                   ),
@@ -516,10 +529,13 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                       AnimatedDefaultTextStyle(
                         duration: const Duration(milliseconds: 200),
                         style: TextStyle(
-                          color: isSelected ? _Tokens.accent : Colors.white54,
+                          color: isSelected
+                              ? _Tokens.mutedGold
+                              : Colors.white.withValues(alpha: 0.55),
                           fontSize: 10,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w400,
                           letterSpacing: 0.4,
                         ),
                         child: Text(
@@ -546,12 +562,12 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(4, 0, 4, 8),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
             child: Text(
-              'LOOKS',
+              'TAMPILAN',
               style: TextStyle(
-                color: Colors.white38,
+                color: _Tokens.mutedGold.withValues(alpha: 0.70),
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2,
@@ -563,21 +579,21 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             child: Row(
               children: [
                 _presetPill('Original', VisionPresetStyle.original,
-                    const Color(0xFF888888)),
-                _presetPill(
-                    'Warm', VisionPresetStyle.warm, const Color(0xFFFF9A3C)),
-                _presetPill(
-                    'Cool', VisionPresetStyle.cool, const Color(0xFF5B9CF6)),
+                    const Color(0xFF8B7D6B)), // taupe
+                _presetPill('Warm', VisionPresetStyle.warm,
+                    const Color(0xFFC2A35C)), // mutedGold
+                _presetPill('Cool', VisionPresetStyle.cool,
+                    const Color(0xFF5B7FA8)), // muted slate
                 _presetPill('Vintage', VisionPresetStyle.vintage,
-                    const Color(0xFFD4A96A)),
-                _presetPill(
-                    'Punch', VisionPresetStyle.punch, const Color(0xFFFF6B35)),
-                _presetPill(
-                    'Sharp', VisionPresetStyle.sharp, const Color(0xFF00E5CC)),
-                _presetPill(
-                    'Drama', VisionPresetStyle.drama, const Color(0xFF9B5CF6)),
+                    const Color(0xFF8A6F4D)), // warmBrown
+                _presetPill('Punch', VisionPresetStyle.punch,
+                    const Color(0xFF9E5A5A)), // errorRed
+                _presetPill('Sharp', VisionPresetStyle.sharp,
+                    const Color(0xFFC2A35C)), // mutedGold
+                _presetPill('Drama', VisionPresetStyle.drama,
+                    const Color(0xFF7A5A8A)), // muted purple
                 _presetPill('Mono', VisionPresetStyle.monochrome,
-                    const Color(0xFFCCCCCC)),
+                    const Color(0xFF8B7D6B)), // taupe
               ],
             ),
           ),
@@ -586,11 +602,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     );
   }
 
-  Widget _presetPill(
-    String label,
-    VisionPresetStyle style,
-    Color color,
-  ) {
+  Widget _presetPill(String label, VisionPresetStyle style, Color color) {
     final isSelected = _visionController.selectedPreset == style;
 
     return GestureDetector(
@@ -604,11 +616,13 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected
-              ? color.withValues(alpha: 0.20)
+              ? color.withValues(alpha: 0.22)
               : Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(_Tokens.radiusPill),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withValues(alpha: 0.12),
+            color: isSelected
+                ? color.withValues(alpha: 0.70)
+                : _Tokens.glassStroke,
           ),
         ),
         child: Row(
@@ -629,7 +643,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
               label,
               style: TextStyle(
                 color: isSelected ? color : Colors.white60,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight:
+                    isSelected ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 12,
                 letterSpacing: 0.2,
               ),
@@ -646,17 +661,19 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 4),
       child: Row(
         children: [
-          const Icon(Icons.tune_rounded, color: Colors.white38, size: 15),
+          Icon(Icons.tune_rounded,
+              color: _Tokens.mutedGold.withValues(alpha: 0.60), size: 15),
           const SizedBox(width: 10),
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
                 trackHeight: 3,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                activeTrackColor: _Tokens.accent,
-                inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-                thumbColor: Colors.white,
+                overlayShape:
+                    const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: _Tokens.mutedGold,
+                inactiveTrackColor: _Tokens.glassStroke,
+                thumbColor: _Tokens.softCream,
                 overlayColor: _Tokens.accentDim,
               ),
               child: Slider(
@@ -677,8 +694,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             child: Text(
               '${(_visionController.filterIntensity * 100).round()}%',
               textAlign: TextAlign.end,
-              style: const TextStyle(
-                color: Colors.white54,
+              style: TextStyle(
+                color: _Tokens.mutedGold.withValues(alpha: 0.75),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -694,18 +711,16 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(_Tokens.radiusPill),
         border: Border.all(color: _Tokens.glassStroke),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _modeTab('Camera', Icons.videocam_rounded, VisionWorkspaceMode.camera,
-              _Tokens.modeCamera),
-          _modeTab('Capture', Icons.photo_camera_rounded,
-              VisionWorkspaceMode.capture, _Tokens.modeCapture),
-          _modeTab('Process', Icons.auto_fix_high_rounded,
+          _modeTab('Kamera', Icons.videocam_rounded,
+              VisionWorkspaceMode.camera, _Tokens.modeCamera),
+          _modeTab('Proses', Icons.auto_fix_high_rounded,
               VisionWorkspaceMode.process, _Tokens.modeProcess),
         ],
       ),
@@ -726,11 +741,12 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color:
-              isSelected ? color.withValues(alpha: 0.18) : Colors.transparent,
+          color: isSelected
+              ? color.withValues(alpha: 0.20)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(_Tokens.radiusPill),
           border: isSelected
-              ? Border.all(color: color.withValues(alpha: 0.45))
+              ? Border.all(color: color.withValues(alpha: 0.50))
               : null,
         ),
         child: Row(
@@ -746,7 +762,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
               label,
               style: TextStyle(
                 color: isSelected ? color : Colors.white38,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight:
+                    isSelected ? FontWeight.w700 : FontWeight.w500,
                 fontSize: 12,
                 letterSpacing: 0.3,
               ),
@@ -818,7 +835,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Pulsing ring when capturing
+                // Pulsing ring when capturing — warm gold
                 if (isCapturing)
                   AnimatedBuilder(
                     animation: _captureRingCtrl,
@@ -830,15 +847,15 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color:
-                                _Tokens.accent.withValues(alpha: (1 - t) * 0.6),
+                            color: _Tokens.mutedGold
+                                .withValues(alpha: (1 - t) * 0.65),
                             width: 2,
                           ),
                         ),
                       );
                     },
                   ),
-                // Outer ring
+                // Outer ring — warm gold tint
                 Container(
                   width: 82,
                   height: 82,
@@ -847,40 +864,43 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                     border: Border.all(
                       color: disabled
                           ? Colors.white24
-                          : Colors.white.withValues(alpha: 0.85),
+                          : _Tokens.mutedGold.withValues(alpha: 0.90),
                       width: 3,
                     ),
                   ),
                 ),
-                // Inner button
+                // Inner button — cream/warm white fill
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: disabled ? Colors.white24 : Colors.white,
+                    color: disabled
+                        ? Colors.white24
+                        : _Tokens.softCream,
                     boxShadow: disabled
                         ? null
                         : [
                             BoxShadow(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              spreadRadius: 2,
+                              color:
+                                  _Tokens.mutedGold.withValues(alpha: 0.35),
+                              blurRadius: 18,
+                              spreadRadius: 3,
                             ),
                           ],
                   ),
                   child: isCapturing
-                      ? const Padding(
-                          padding: EdgeInsets.all(20),
+                      ? Padding(
+                          padding: const EdgeInsets.all(20),
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: Colors.black54,
+                            color: _Tokens.warmBrown,
                           ),
                         )
-                      : const Icon(
+                      : Icon(
                           Icons.camera_alt_rounded,
-                          color: Colors.black,
+                          color: _Tokens.warmBrown,
                           size: 28,
                         ),
                 ),
@@ -906,18 +926,19 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             content: Text(
               'Histogram belum tersedia. ${_histogramDebugSummary()}',
             ),
+            backgroundColor: _Tokens.warmBrown,
           ),
         );
       },
       child: AnimatedOpacity(
-        opacity: hasImage ? 1.0 : 0.3,
+        opacity: hasImage ? 1.0 : 0.30,
         duration: const Duration(milliseconds: 200),
         child: Container(
           width: 50,
           height: 50,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.08),
+            color: _Tokens.warmBrown.withValues(alpha: 0.18),
             border: Border.all(color: _Tokens.glassStroke),
           ),
           child: const Icon(
@@ -934,14 +955,15 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: _Tokens.warmBrown.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _Tokens.glassStroke),
       ),
       child: DropdownButton<VisionFilterType>(
         value: _visionController.selectedFilter,
-        dropdownColor: const Color(0xFF151820),
-        iconEnabledColor: Colors.white54,
+        // Warm dark dropdown background
+        dropdownColor: const Color(0xFF2A1A0A),
+        iconEnabledColor: _Tokens.mutedGold.withValues(alpha: 0.75),
         underline: const SizedBox.shrink(),
         isDense: true,
         style: const TextStyle(
@@ -950,12 +972,10 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
           fontWeight: FontWeight.w600,
         ),
         items: const [
-          DropdownMenuItem(value: VisionFilterType.none, child: Text('None')),
-          DropdownMenuItem(value: VisionFilterType.blur, child: Text('Blur')),
-          DropdownMenuItem(
-              value: VisionFilterType.sharpen, child: Text('Sharpen')),
-          DropdownMenuItem(
-              value: VisionFilterType.edgeDetection, child: Text('Edge')),
+          DropdownMenuItem(value: VisionFilterType.none,          child: Text('None')),
+          DropdownMenuItem(value: VisionFilterType.blur,          child: Text('Blur')),
+          DropdownMenuItem(value: VisionFilterType.sharpen,       child: Text('Sharpen')),
+          DropdownMenuItem(value: VisionFilterType.edgeDetection, child: Text('Edge')),
         ],
         onChanged: (v) {
           if (v != null) {
@@ -973,8 +993,6 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     switch (_workspaceMode) {
       case VisionWorkspaceMode.camera:
         return _buildLiveCameraPreview(cameraController, previewSize);
-      case VisionWorkspaceMode.capture:
-        return _buildCapturedPreview();
       case VisionWorkspaceMode.process:
         return _buildProcessedPreview();
     }
@@ -987,7 +1005,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         child: ClipRect(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final screenRatio = constraints.maxWidth / constraints.maxHeight;
+              final screenRatio =
+                  constraints.maxWidth / constraints.maxHeight;
               final cameraRatio = cameraController.value.aspectRatio;
               final fit = cameraRatio > screenRatio
                   ? BoxFit.fitHeight
@@ -1010,32 +1029,6 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         aspectRatio: cameraController.value.aspectRatio,
         child: CameraPreview(cameraController),
       ),
-    );
-  }
-
-  Widget _buildCapturedPreview() {
-    final bytes = _visionController.capturedImageBytes;
-    if (bytes == null) {
-      return _buildEmptyPreviewState(
-        title: 'Belum ada gambar',
-        subtitle: 'Tekan tombol Capture untuk mengambil frame jalan.',
-      );
-    }
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Container(
-          color: _Tokens.surface,
-          child: Center(
-            child: Image.memory(
-              _visionController.processedImageBytes ?? bytes,
-              fit: BoxFit.contain,
-              gaplessPlayback: true,
-            ),
-          ),
-        ),
-        _buildHistogramMiniPanel(),
-      ],
     );
   }
 
@@ -1084,10 +1077,10 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'HISTOGRAM',
               style: TextStyle(
-                color: Colors.white38,
+                color: _Tokens.mutedGold.withValues(alpha: 0.70),
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.5,
@@ -1124,7 +1117,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
+                color: _Tokens.warmBrown.withValues(alpha: 0.12),
                 border: Border.all(color: _Tokens.glassStroke),
               ),
               child: const Icon(
@@ -1147,8 +1140,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white38,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
                 fontSize: 13,
               ),
             ),
@@ -1171,8 +1164,8 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
               height: 64,
               child: CircularProgressIndicator(
                 strokeWidth: 3,
-                color: _Tokens.accent,
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                color: _Tokens.mutedGold,
+                backgroundColor: _Tokens.warmBrown.withValues(alpha: 0.18),
               ),
             ),
             const SizedBox(height: 24),
@@ -1186,11 +1179,11 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Mohon tunggu, sistem sedang\nmenyiapkan kamera.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white38,
+                color: Colors.white.withValues(alpha: 0.45),
                 fontSize: 13,
               ),
             ),
@@ -1221,9 +1214,9 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _Tokens.warn.withValues(alpha: 0.12),
-                    border:
-                        Border.all(color: _Tokens.warn.withValues(alpha: 0.35)),
+                    color: _Tokens.warn.withValues(alpha: 0.14),
+                    border: Border.all(
+                        color: _Tokens.warn.withValues(alpha: 0.40)),
                   ),
                   child: Icon(
                     isCameraAccessIssue
@@ -1235,7 +1228,9 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  isCameraAccessIssue ? 'Camera Access Denied' : 'Vision Error',
+                  isCameraAccessIssue
+                      ? 'Akses Kamera Ditolak'
+                      : 'Vision Error',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
@@ -1247,11 +1242,10 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
                 Text(
                   isCameraAccessIssue
                       ? 'Izin kamera belum aktif. Aktifkan izin agar proses inspeksi visual dapat berjalan.'
-                      : (errorMessage ??
-                          'Terjadi gangguan saat memuat kamera.'),
+                      : (errorMessage ?? 'Terjadi gangguan saat memuat kamera.'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white54,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.60),
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -1297,12 +1291,12 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
         decoration: BoxDecoration(
           color: primary
-              ? _Tokens.accent.withValues(alpha: 0.15)
+              ? _Tokens.mutedGold.withValues(alpha: 0.16)
               : Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(_Tokens.radiusPill),
           border: Border.all(
             color: primary
-                ? _Tokens.accent.withValues(alpha: 0.5)
+                ? _Tokens.mutedGold.withValues(alpha: 0.55)
                 : _Tokens.glassStroke,
           ),
         ),
@@ -1310,12 +1304,14 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon,
-                size: 16, color: primary ? _Tokens.accent : Colors.white70),
+                size: 16,
+                color:
+                    primary ? _Tokens.mutedGold : Colors.white70),
             const SizedBox(width: 7),
             Text(
               label,
               style: TextStyle(
-                color: primary ? _Tokens.accent : Colors.white70,
+                color: primary ? _Tokens.mutedGold : Colors.white70,
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),
@@ -1326,11 +1322,11 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
     );
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────
+  // ─── Helpers ──────────────────────────────────────────────────
   Future<void> _captureAndOpenHistogram() async {
     await _visionController.captureFrame();
     if (!mounted) return;
-    setState(() => _workspaceMode = VisionWorkspaceMode.capture);
+    setState(() => _workspaceMode = VisionWorkspaceMode.process);
     _logHistogramDebugState(source: 'after_capture');
     if (_visionController.hasCapturedImage) _openHistogramAnalysisPage();
   }
@@ -1341,8 +1337,10 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
         _visionController.processedImageBytes;
     if (imageBytes == null || imageBytes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data gambar belum tersedia untuk analisis histogram.'),
+        SnackBar(
+          content: const Text(
+              'Data gambar belum tersedia untuk analisis histogram.'),
+          backgroundColor: _Tokens.warmBrown,
         ),
       );
       return;
@@ -1373,7 +1371,7 @@ class _VisionViewState extends State<VisionView> with TickerProviderStateMixin {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Reusable: Glass Icon Button
+// Reusable: Glass Icon Button (Vintage-aware)
 // ═══════════════════════════════════════════════════════════════
 class _GlassButton extends StatelessWidget {
   const _GlassButton({
@@ -1390,7 +1388,7 @@ class _GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = accentColor ?? _Tokens.accent;
+    final color = accentColor ?? _Tokens.mutedGold;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1400,11 +1398,12 @@ class _GlassButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isActive
-              ? color.withValues(alpha: 0.18)
-              : Colors.black.withValues(alpha: 0.52),
+              ? color.withValues(alpha: 0.20)
+              : _Tokens.warmBrown.withValues(alpha: 0.22),
           border: Border.all(
-            color:
-                isActive ? color.withValues(alpha: 0.60) : _Tokens.glassStroke,
+            color: isActive
+                ? color.withValues(alpha: 0.65)
+                : _Tokens.glassStroke,
           ),
         ),
         child: Icon(
@@ -1463,7 +1462,7 @@ class _PulseDotState extends State<_PulseDot>
           color: widget.color.withValues(alpha: _anim.value),
           boxShadow: [
             BoxShadow(
-              color: widget.color.withValues(alpha: _anim.value * 0.6),
+              color: widget.color.withValues(alpha: _anim.value * 0.55),
               blurRadius: 6,
               spreadRadius: 1,
             ),
@@ -1475,13 +1474,14 @@ class _PulseDotState extends State<_PulseDot>
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Scan Grid Painter (camera mode overlay)
+// Scan Grid Painter — warm-tinted brackets
 // ═══════════════════════════════════════════════════════════════
 class _ScanGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    // Very subtle warm-tinted grid lines
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
+      ..color = const Color(0xFFC2A35C).withValues(alpha: 0.06)
       ..strokeWidth = 0.7;
 
     // 3×3 grid
@@ -1492,9 +1492,9 @@ class _ScanGridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Corner brackets
+    // Corner brackets — warm gold tint instead of pure white
     final bPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.55)
+      ..color = const Color(0xFFC2A35C).withValues(alpha: 0.65)
       ..strokeWidth = 2.2
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

@@ -8,6 +8,39 @@ import 'package:image/image.dart' as img;
 
 import 'vision_image_processor.dart';
 
+// ─── Vintage Design Tokens (mirroring main.dart) ───────────────
+class _VintageTokens {
+  static const warmBrown    = Color(0xFF8A6F4D);
+  static const mutedGold    = Color(0xFFC2A35C);
+  static const warmBeige    = Color(0xFFE6D8C3);
+  static const softCream    = Color(0xFFF3EBDD);
+  static const charcoalGray = Color(0xFF3D3D3D);
+  static const taupe        = Color(0xFF8B7D6B);
+  static const errorRed     = Color(0xFF9E5A5A);
+  static const warnAmber    = Color(0xFFB07A3A);
+
+  // Card/panel decoration
+  static BoxDecoration panel({Color? color}) => BoxDecoration(
+        color: color ?? softCream,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: warmBrown.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      );
+
+  // Inner stat cell
+  static BoxDecoration statCell() => BoxDecoration(
+        color: warmBeige,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: taupe.withValues(alpha: 0.25)),
+      );
+}
+
 class HistogramAnalysisPage extends StatefulWidget {
   const HistogramAnalysisPage({
     super.key,
@@ -49,149 +82,157 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // AppBar uses the warmBrown theme from main.dart automatically
       appBar: AppBar(
         title: Text(widget.title),
+        bottom: _isAnalyzing
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(3),
+                child: LinearProgressIndicator(
+                  backgroundColor: _VintageTokens.warmBeige,
+                  color: _VintageTokens.mutedGold,
+                  minHeight: 3,
+                ),
+              )
+            : null,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF101113),
-              Colors.black.withValues(alpha: 0.95),
+      backgroundColor: _VintageTokens.warmBeige,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildPreviewPanel(),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              _buildInlineErrorBanner(),
             ],
-          ),
-        ),
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildPreviewPanel(),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                _buildInlineErrorBanner(),
+            const SizedBox(height: 12),
+            if (_analysis != null) ...[
+              _buildStatsGrid(context, _analysis!),
+              if (_analysis!.minIntensity == 0 &&
+                  _analysis!.maxIntensity == 0) ...[
+                const SizedBox(height: 8),
+                _buildDarkImageWarning(),
               ],
-              const SizedBox(height: 12),
-              if (_analysis != null) ...[
-                _buildStatsGrid(context, _analysis!),
-                // Dark-image warning: shown when every pixel is at luminance 0
-                if (_analysis!.minIntensity == 0 &&
-                    _analysis!.maxIntensity == 0) ...[
-                  const SizedBox(height: 8),
-                  _buildDarkImageWarning(),
-                ],
-              ] else
-                _buildStatsSkeletonPlaceholder(),
-              const SizedBox(height: 12),
-              _HistogramPanel(
-                title: 'Histogram Grayscale',
-                subtitle:
-                    'Distribusi luminance piksel (0-255) pada citra hasil filter.',
-                trailing: _isAnalyzing
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+            ] else
+              _buildStatsSkeletonPlaceholder(),
+            const SizedBox(height: 12),
+            _HistogramPanel(
+              title: 'Histogram Grayscale',
+              subtitle:
+                  'Distribusi luminance piksel (0–255) pada citra hasil filter.',
+              trailing: _isAnalyzing
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _VintageTokens.mutedGold,
+                      ),
+                    )
+                  : null,
+              child: SizedBox(
+                height: 170,
+                child: _analysis != null
+                    ? CustomPaint(
+                        painter: _SingleHistogramPainter(
+                          bins: _analysis!.grayBins,
+                          color: _VintageTokens.warmBrown,
+                        ),
+                        child: const SizedBox.expand(),
                       )
-                    : null,
-                child: SizedBox(
-                  height: 170,
-                  child: _analysis != null
-                      ? CustomPaint(
-                          painter: _SingleHistogramPainter(
-                            bins: _analysis!.grayBins,
-                            color: const Color(0xFFA9FF50),
-                          ),
-                          child: const SizedBox.expand(),
-                        )
-                      : _buildAnalyzingOverlay(),
-                ),
+                    : _buildAnalyzingOverlay(),
               ),
-              const SizedBox(height: 12),
-              _HistogramPanel(
-                title: 'Histogram RGB',
-                subtitle:
-                    'Kurva channel merah, hijau, dan biru untuk analisis distribusi warna.',
-                child: SizedBox(
-                  height: 190,
-                  child: _analysis != null
-                      ? CustomPaint(
-                          painter: _RgbHistogramPainter(
-                            redBins: _analysis!.redBins,
-                            greenBins: _analysis!.greenBins,
-                            blueBins: _analysis!.blueBins,
-                          ),
-                          child: const SizedBox.expand(),
-                        )
-                      : _buildAnalyzingOverlay(),
-                ),
+            ),
+            const SizedBox(height: 12),
+            _HistogramPanel(
+              title: 'Histogram RGB',
+              subtitle:
+                  'Kurva channel merah, hijau, dan biru untuk analisis distribusi warna.',
+              child: SizedBox(
+                height: 190,
+                child: _analysis != null
+                    ? CustomPaint(
+                        painter: _RgbHistogramPainter(
+                          redBins: _analysis!.redBins,
+                          greenBins: _analysis!.greenBins,
+                          blueBins: _analysis!.blueBins,
+                        ),
+                        child: const SizedBox.expand(),
+                      )
+                    : _buildAnalyzingOverlay(),
               ),
-              const SizedBox(height: 12),
-              _buildFilterSettingsPanel(),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Kembali ke Kamera'),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            _buildFilterSettingsPanel(),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+              label: const Text('Kembali ke Kamera'),
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
   }
 
+  // ─── Error Banner ─────────────────────────────────────────────
   Widget _buildInlineErrorBanner() {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: 0.16),
+        color: _VintageTokens.errorRed.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.45)),
+        border: Border.all(color: _VintageTokens.errorRed.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+          Icon(Icons.warning_amber_rounded,
+              color: _VintageTokens.errorRed, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _error!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
+                    color: _VintageTokens.charcoalGray,
                   ),
             ),
           ),
           const SizedBox(width: 6),
           TextButton(
             onPressed: _runAnalysis,
-            child: const Text('Retry'),
+            child: Text(
+              'Coba Lagi',
+              style: TextStyle(color: _VintageTokens.warmBrown),
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// Shown inside a histogram panel while compute() is still running.
+  // ─── Analyzing Overlay ────────────────────────────────────────
   Widget _buildAnalyzingOverlay() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: Color(0xFFA9FF50),
+              color: _VintageTokens.mutedGold,
             ),
           ),
           const SizedBox(height: 10),
           Text(
             'Menganalisis citra…',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white54,
+                  color: _VintageTokens.taupe,
                 ),
           ),
         ],
@@ -199,22 +240,18 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
     );
   }
 
-  /// Skeleton placeholder for the stats grid while analysis is running.
+  // ─── Skeleton Placeholder ─────────────────────────────────────
   Widget _buildStatsSkeletonPlaceholder() {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
+      decoration: _VintageTokens.panel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Distribusi & Kontras',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
+                  color: _VintageTokens.charcoalGray,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -223,7 +260,7 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
             child: Text(
               'Menganalisis citra…',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white54,
+                    color: _VintageTokens.taupe,
                   ),
             ),
           ),
@@ -233,26 +270,27 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
     );
   }
 
-  /// Shown when the analysis result indicates the captured image is all-black.
+  // ─── Dark Image Warning ───────────────────────────────────────
   Widget _buildDarkImageWarning() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.orangeAccent.withValues(alpha: 0.12),
+        color: _VintageTokens.warnAmber.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.4)),
+        border: Border.all(
+            color: _VintageTokens.warnAmber.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.brightness_low_rounded,
-              color: Colors.orangeAccent, size: 18),
+          Icon(Icons.brightness_low_rounded,
+              color: _VintageTokens.warnAmber, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Citra terlihat sangat gelap (semua piksel mendekati luminance 0). '
               'Pastikan pencahayaan mencukupi saat mengambil frame.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
+                    color: _VintageTokens.charcoalGray,
                   ),
             ),
           ),
@@ -261,39 +299,48 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
     );
   }
 
+  // ─── Preview Panel ────────────────────────────────────────────
   Widget _buildPreviewPanel() {
     final bytes = _previewBytes ?? widget.imageBytes;
 
     return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
+      padding: const EdgeInsets.all(12),
+      decoration: _VintageTokens.panel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Icon(Icons.photo_camera_back_rounded,
+                  size: 16, color: _VintageTokens.warmBrown),
+              const SizedBox(width: 6),
               Text(
                 'Pratinjau Citra',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: _VintageTokens.charcoalGray,
                     ),
               ),
               const Spacer(),
               if (_isAnalyzing)
-                Text(
-                  'Memproses...',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white70,
-                      ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _VintageTokens.mutedGold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Memproses...',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: _VintageTokens.warmBrown,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: AspectRatio(
@@ -310,6 +357,7 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
     );
   }
 
+  // ─── Stats Grid ───────────────────────────────────────────────
   Widget _buildStatsGrid(
       BuildContext context, HistogramAnalysisResult analysis) {
     final info = <({String label, String value})>[
@@ -323,20 +371,23 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
+      decoration: _VintageTokens.panel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Distribusi & Kontras',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+          Row(
+            children: [
+              Icon(Icons.bar_chart_rounded,
+                  size: 16, color: _VintageTokens.warmBrown),
+              const SizedBox(width: 6),
+              Text(
+                'Distribusi & Kontras',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: _VintageTokens.charcoalGray,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           GridView.builder(
@@ -354,10 +405,7 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                decoration: _VintageTokens.statCell(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -365,14 +413,14 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
                     Text(
                       item.label,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.white60,
+                            color: _VintageTokens.taupe,
                           ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       item.value,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
+                            color: _VintageTokens.warmBrown,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
@@ -386,32 +434,36 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
     );
   }
 
+  // ─── Filter Settings Panel ────────────────────────────────────
   Widget _buildFilterSettingsPanel() {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: _VintageTokens.panel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Filter Styles Settings',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+          Row(
+            children: [
+              Icon(Icons.tune_rounded,
+                  size: 16, color: _VintageTokens.warmBrown),
+              const SizedBox(width: 6),
+              Text(
+                'Pengaturan Filter',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: _VintageTokens.charcoalGray,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
             'Setiap perubahan langsung memperbarui pratinjau dan histogram secara real-time.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white70,
+                  color: _VintageTokens.taupe,
                 ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           _SettingSlider(
             title: 'Brightness',
             value: _settings.brightness,
@@ -446,7 +498,8 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
               _updateSettings(_settings.copyWith(convolutionIntensity: value));
             },
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
+          // Convolution type chips
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -457,7 +510,7 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
               _convolutionChip('Edge', VisionFilterType.edgeDetection),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: [
               OutlinedButton.icon(
@@ -465,15 +518,27 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
                   _updateSettings(const HistogramFilterSettings(),
                       immediate: true);
                 },
-                icon: const Icon(Icons.restart_alt),
-                label: const Text('Reset'),
+                icon: Icon(Icons.restart_alt,
+                    size: 16, color: _VintageTokens.warmBrown),
+                label: Text(
+                  'Reset',
+                  style: TextStyle(color: _VintageTokens.warmBrown),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                      color: _VintageTokens.warmBrown.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               if (_isAnalyzing)
                 Text(
-                  'Updating...',
+                  'Memperbarui...',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
+                        color: _VintageTokens.taupe,
+                        fontStyle: FontStyle.italic,
                       ),
                 ),
             ],
@@ -492,15 +557,23 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
       onSelected: (_) {
         _updateSettings(_settings.copyWith(convolutionType: type));
       },
-      selectedColor: Colors.lightGreenAccent,
-      backgroundColor: Colors.white12,
+      selectedColor: _VintageTokens.mutedGold,
+      backgroundColor: _VintageTokens.warmBeige,
+      side: BorderSide(
+        color: isSelected
+            ? _VintageTokens.warmBrown
+            : _VintageTokens.taupe.withValues(alpha: 0.4),
+      ),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : Colors.white,
-        fontWeight: FontWeight.w700,
+        color: isSelected
+            ? _VintageTokens.charcoalGray
+            : _VintageTokens.taupe,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
       ),
     );
   }
 
+  // ─── Logic ────────────────────────────────────────────────────
   void _updateSettings(HistogramFilterSettings next, {bool immediate = false}) {
     setState(() {
       _settings = next;
@@ -549,32 +622,26 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
         return;
       }
 
+      // Fallback: try raw histogram without filter
       try {
         final fallback = await compute(
           _analyzeRawHistogramInIsolate,
           <String, Object>{'bytes': widget.imageBytes},
         );
 
-        if (!mounted || token != _analysisToken) {
-          return;
-        }
+        if (!mounted || token != _analysisToken) return;
 
         setState(() {
           _previewBytes = widget.imageBytes;
           _analysis = _analysisFromMap(fallback);
           _isAnalyzing = false;
-          _error =
-              'Analisis filter gagal, menampilkan histogram asli. Detail: $e';
+          _error = 'Filter gagal, menampilkan histogram tanpa filter. ($e)';
         });
       } catch (fallbackError) {
-        if (!mounted || token != _analysisToken) {
-          return;
-        }
-
+        if (!mounted || token != _analysisToken) return;
         setState(() {
           _isAnalyzing = false;
-          _error =
-              'Gagal menganalisis histogram: $e | fallback: $fallbackError';
+          _error = 'Analisis gagal: $fallbackError';
         });
       }
     }
@@ -582,10 +649,10 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
 
   HistogramAnalysisResult _analysisFromMap(Map<String, Object> result) {
     return HistogramAnalysisResult(
-      grayBins: List<int>.from(result['grayBins'] as List),
-      redBins: List<int>.from(result['redBins'] as List),
-      greenBins: List<int>.from(result['greenBins'] as List),
-      blueBins: List<int>.from(result['blueBins'] as List),
+      grayBins: result['grayBins'] as List<int>,
+      redBins: result['redBins'] as List<int>,
+      greenBins: result['greenBins'] as List<int>,
+      blueBins: result['blueBins'] as List<int>,
       minIntensity: result['minIntensity'] as int,
       maxIntensity: result['maxIntensity'] as int,
       meanGray: (result['meanGray'] as num).toDouble(),
@@ -596,6 +663,9 @@ class _HistogramAnalysisPageState extends State<HistogramAnalysisPage> {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Reusable: Histogram Panel Card
+// ═══════════════════════════════════════════════════════════════
 class _HistogramPanel extends StatelessWidget {
   const _HistogramPanel({
     required this.title,
@@ -612,12 +682,8 @@ class _HistogramPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.58),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: _VintageTokens.panel(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -627,7 +693,7 @@ class _HistogramPanel extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
+                        color: _VintageTokens.charcoalGray,
                         fontWeight: FontWeight.w700,
                       ),
                 ),
@@ -639,8 +705,15 @@ class _HistogramPanel extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white70,
+                  color: _VintageTokens.taupe,
                 ),
+          ),
+          const SizedBox(height: 12),
+          // Thin divider before the chart area
+          Divider(
+            color: _VintageTokens.taupe.withValues(alpha: 0.25),
+            height: 1,
+            thickness: 0.5,
           ),
           const SizedBox(height: 10),
           child,
@@ -650,6 +723,9 @@ class _HistogramPanel extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Reusable: Setting Slider
+// ═══════════════════════════════════════════════════════════════
 class _SettingSlider extends StatelessWidget {
   const _SettingSlider({
     required this.title,
@@ -680,32 +756,55 @@ class _SettingSlider extends StatelessWidget {
               child: Text(
                 title,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
+                      color: _VintageTokens.charcoalGray,
                       fontWeight: FontWeight.w600,
                     ),
               ),
             ),
-            Text(
-              valueLabel,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.white70,
-                  ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: _VintageTokens.warmBeige,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                    color: _VintageTokens.taupe.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                valueLabel,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: _VintageTokens.warmBrown,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
             ),
           ],
         ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          divisions: divisions,
-          activeColor: Colors.lightGreenAccent,
-          onChanged: onChanged,
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: _VintageTokens.warmBrown,
+            inactiveTrackColor: _VintageTokens.taupe.withValues(alpha: 0.25),
+            thumbColor: _VintageTokens.mutedGold,
+            overlayColor: _VintageTokens.mutedGold.withValues(alpha: 0.18),
+            trackHeight: 3,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+          ),
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: divisions,
+            onChanged: onChanged,
+          ),
         ),
       ],
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Data Models
+// ═══════════════════════════════════════════════════════════════
 class HistogramFilterSettings {
   const HistogramFilterSettings({
     this.brightness = 0.0,
@@ -760,6 +859,9 @@ class HistogramAnalysisResult {
   final String contrastLevel;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Isolate Functions (unchanged logic)
+// ═══════════════════════════════════════════════════════════════
 Map<String, Object> _processAndAnalyzeInIsolate(Map<String, Object> payload) {
   final sourceBytes = payload['bytes'] as Uint8List;
   final brightness =
@@ -786,7 +888,6 @@ Map<String, Object> _processAndAnalyzeInIsolate(Map<String, Object> payload) {
 
   working = img.adjustColor(
     working,
-    // image.adjustColor expects brightness multiplier (1.0 = unchanged).
     brightness: brightnessMultiplier,
     contrast: contrast,
     saturation: 1.0,
@@ -799,33 +900,13 @@ Map<String, Object> _processAndAnalyzeInIsolate(Map<String, Object> payload) {
     case VisionFilterType.sharpen:
       working = img.convolution(
         working,
-        filter: <double>[
-          0,
-          -1,
-          0,
-          -1,
-          5,
-          -1,
-          0,
-          -1,
-          0,
-        ],
+        filter: <double>[0, -1, 0, -1, 5, -1, 0, -1, 0],
       );
       break;
     case VisionFilterType.edgeDetection:
       working = img.convolution(
         working,
-        filter: <double>[
-          -1,
-          -1,
-          -1,
-          -1,
-          8,
-          -1,
-          -1,
-          -1,
-          -1,
-        ],
+        filter: <double>[-1, -1, -1, -1, 8, -1, -1, -1, -1],
       );
       break;
     case VisionFilterType.none:
@@ -882,7 +963,7 @@ Map<String, Object> _analyzeRawHistogramInIsolate(Map<String, Object> payload) {
 
 HistogramAnalysisResult _analyzeImageHistogram(img.Image image) {
   final totalPixels = image.width * image.height;
-  final targetSamples = 360000;
+  const targetSamples = 360000;
   final stride = max(1, sqrt(totalPixels / targetSamples).floor());
 
   final grayBins = List<int>.filled(256, 0);
@@ -910,12 +991,8 @@ HistogramAnalysisResult _analyzeImageHistogram(img.Image image) {
       blueBins[b]++;
       grayBins[gray]++;
 
-      if (gray < minIntensity) {
-        minIntensity = gray;
-      }
-      if (gray > maxIntensity) {
-        maxIntensity = gray;
-      }
+      if (gray < minIntensity) minIntensity = gray;
+      if (gray > maxIntensity) maxIntensity = gray;
 
       sampledPixels++;
       sumGray += gray;
@@ -971,12 +1048,8 @@ img.Image _blendWithOriginal({
 }
 
 String _classifyContrast(double stdDev, int dynamicRange) {
-  if (stdDev >= 62 && dynamicRange >= 210) {
-    return 'Tinggi';
-  }
-  if (stdDev >= 42 && dynamicRange >= 150) {
-    return 'Sedang';
-  }
+  if (stdDev >= 62 && dynamicRange >= 210) return 'Tinggi';
+  if (stdDev >= 42 && dynamicRange >= 150) return 'Sedang';
   return 'Rendah';
 }
 
@@ -986,6 +1059,9 @@ int _channelToByte(num channel) {
   return normalized.round().clamp(0, 255);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Histogram Painters — updated to vintage palette
+// ═══════════════════════════════════════════════════════════════
 class _SingleHistogramPainter extends CustomPainter {
   _SingleHistogramPainter({required this.bins, required this.color});
 
@@ -994,19 +1070,15 @@ class _SingleHistogramPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (bins.isEmpty) {
-      return;
-    }
+    if (bins.isEmpty) return;
 
     final maxBin = bins.reduce(max);
-    if (maxBin <= 0) {
-      return;
-    }
+    if (maxBin <= 0) return;
 
-    // Background rounded rect
+    // Warm-tinted background for the chart area
     canvas.drawRRect(
       RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)),
-      Paint()..color = Colors.white.withValues(alpha: 0.06),
+      Paint()..color = _VintageTokens.warmBeige,
     );
 
     // Subtle baseline
@@ -1014,34 +1086,46 @@ class _SingleHistogramPainter extends CustomPainter {
       Offset(0, size.height),
       Offset(size.width, size.height),
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.12)
+        ..color = _VintageTokens.taupe.withValues(alpha: 0.35)
         ..strokeWidth = 1,
     );
 
+    // Subtle horizontal grid lines (25%, 50%, 75%)
+    final gridPaint = Paint()
+      ..color = _VintageTokens.taupe.withValues(alpha: 0.15)
+      ..strokeWidth = 0.5;
+    for (final pct in [0.25, 0.5, 0.75]) {
+      final y = size.height * (1 - pct);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
     final totalBins = bins.length;
-    // Use at least 2px per bar so a single-bin spike is always visible.
     final rawBarWidth = size.width / totalBins;
     final barWidth = rawBarWidth.clamp(2.0, 5.0);
-    final paint = Paint()..color = color.withValues(alpha: 0.92);
+
+    // Fill under bars with gradient-like dual paint
+    final paint = Paint()..color = color.withValues(alpha: 0.85);
+    final accentPaint = Paint()
+      ..color = _VintageTokens.mutedGold.withValues(alpha: 0.65);
 
     for (var i = 0; i < totalBins; i++) {
       final ratio = bins[i] / maxBin;
       final h = ratio * size.height;
-      if (h < 0.5) continue; // skip invisible bars
+      if (h < 0.5) continue;
       final rect = Rect.fromLTWH(
         i * rawBarWidth,
         size.height - h,
         barWidth,
         h,
       );
-      canvas.drawRect(rect, paint);
+      // Upper half in accent, lower half in primary — gives a warm gradient feel
+      canvas.drawRect(rect, ratio > 0.6 ? accentPaint : paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _SingleHistogramPainter oldDelegate) {
-    return oldDelegate.bins != bins || oldDelegate.color != color;
-  }
+  bool shouldRepaint(covariant _SingleHistogramPainter oldDelegate) =>
+      oldDelegate.bins != bins || oldDelegate.color != color;
 }
 
 class _RgbHistogramPainter extends CustomPainter {
@@ -1057,13 +1141,12 @@ class _RgbHistogramPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (redBins.isEmpty || greenBins.isEmpty || blueBins.isEmpty) {
-      return;
-    }
+    if (redBins.isEmpty || greenBins.isEmpty || blueBins.isEmpty) return;
 
+    // Background
     canvas.drawRRect(
       RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(12)),
-      Paint()..color = Colors.white.withValues(alpha: 0.06),
+      Paint()..color = _VintageTokens.warmBeige,
     );
 
     final maxBin = [
@@ -1071,31 +1154,12 @@ class _RgbHistogramPainter extends CustomPainter {
       greenBins.reduce(max),
       blueBins.reduce(max),
     ].reduce(max);
-    if (maxBin <= 0) {
-      return;
-    }
+    if (maxBin <= 0) return;
 
-    _drawCurve(
-      canvas: canvas,
-      size: size,
-      bins: redBins,
-      maxBin: maxBin,
-      color: Colors.redAccent,
-    );
-    _drawCurve(
-      canvas: canvas,
-      size: size,
-      bins: greenBins,
-      maxBin: maxBin,
-      color: Colors.lightGreenAccent,
-    );
-    _drawCurve(
-      canvas: canvas,
-      size: size,
-      bins: blueBins,
-      maxBin: maxBin,
-      color: Colors.blueAccent,
-    );
+    // Muted-vintage palette for RGB curves
+    _drawCurve(canvas: canvas, size: size, bins: redBins,   maxBin: maxBin, color: const Color(0xFFC0614A)); // muted terracotta red
+    _drawCurve(canvas: canvas, size: size, bins: greenBins, maxBin: maxBin, color: const Color(0xFF6A9A6A)); // muted sage green
+    _drawCurve(canvas: canvas, size: size, bins: blueBins,  maxBin: maxBin, color: const Color(0xFF5A7FA8)); // muted slate blue
   }
 
   void _drawCurve({
@@ -1111,7 +1175,6 @@ class _RgbHistogramPainter extends CustomPainter {
     for (var i = 0; i < bins.length; i++) {
       final x = i * stepX;
       final y = size.height - ((bins[i] / maxBin) * size.height);
-
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -1122,15 +1185,14 @@ class _RgbHistogramPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8
-      ..color = color.withValues(alpha: 0.95);
+      ..color = color.withValues(alpha: 0.90);
 
     canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _RgbHistogramPainter oldDelegate) {
-    return oldDelegate.redBins != redBins ||
-        oldDelegate.greenBins != greenBins ||
-        oldDelegate.blueBins != blueBins;
-  }
+  bool shouldRepaint(covariant _RgbHistogramPainter oldDelegate) =>
+      oldDelegate.redBins != redBins ||
+      oldDelegate.greenBins != greenBins ||
+      oldDelegate.blueBins != blueBins;
 }
